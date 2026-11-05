@@ -94,13 +94,6 @@ Selection:
 - `getBlobState` real response (PascalCase): `{ BlobState: "Consumed", Error: null, ConsumedName, Actions: { Details } }`. Done when `BlobState === "Consumed"`. A non-null `Error` fails the run. The installed types declare `status`/`details`, which does not match the real API. The code types it as `BlobStateResponse`.
 - `xmc.authoring.graphql` response: `data.item` (with `children.nodes` and `pageInfo`) is the `Item` type.
 
-# Unverified (confirm on first real runs; update the skill when confirmed)
-- Whether the browser client exposes the `Content-Disposition` header, since the SDK passes responses through the host bridge.
-- Whether chunk ids start at 0 or 1. `CHUNK_ID_START = 0` in `contentTransfer.ts`.
-- Transfer state names other than `Completed`. In-progress states are a set in `contentTransfer.ts`, and anything else fails the run.
-- Other `BlobState` values while consuming. Only `Consumed` has been seen.
-- Whether the chunk `Blob` is intact in the browser (`size > 0`).
-
 # Not built yet
 - Download package and Install package are placeholder tabs. Their steps are in the "Feature: content transfer" section above and in `docs/content-transfer-flow.md`.
 - No tests yet.
