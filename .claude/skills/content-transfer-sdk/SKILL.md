@@ -33,7 +33,7 @@ If this skill disagrees with the installed types, the installed types win.
 | 4 | saveChunk | DESTINATION | same ids as step 3, the `Blob` | 201, no body |
 | 5 | completeChunkSetTransfer | DESTINATION | `transferId`, `chunksetId` | `ContentTransferFileName` |
 | 6 | consumeFile | DESTINATION | `databaseName`, `fileName` | 202, no body |
-| 7 | getBlobState | DESTINATION | `fileName` | `status`, `details` |
+| 7 | getBlobState | DESTINATION | `fileName` | `BlobState`, `Error` |
 | 8 | deleteContentTransfer | SOURCE | `transferId` | 202, no body |
 
 ## Rules
@@ -42,9 +42,13 @@ If this skill disagrees with the installed types, the installed types win.
 - Loop `chunkId` (a number) over each chunk set's `ChunkCount`. Fetch from the source (3), save to the destination (4), same ids on both.
 - Do not call getChunk until step 2 reports `State` as `Completed`.
 - Call step 5 once per chunk set, after all its chunks are saved. Keep every returned `ContentTransferFileName`.
+- Step 6 (consumeFile) takes the file name with a `blob://` prefix. Step 7 (getBlobState) takes it without the prefix.
 - Steps 6 and 7 use that file name. 202 responses mean the work is asynchronous, so poll (step 2 for create, step 7 for consume).
 - Always run step 8, also when an earlier step fails, so source transfers are not left behind.
 - Keep chunk data as a `Blob` end to end. Never convert it to text or JSON.
+- Pass `isMedia` to saveChunk (step 4) from the chunk's own getChunk response: the `IsMedia` value in its
+  `Content-Disposition` header (e.g. `form-data; ItemsProcessed=1; ItemsSkipped=0; IsMedia=false`). Fail the run if the
+  value is missing rather than guessing.
 - dataTrees fields (`itemPath`, `scope`, `mergeStrategy`) are optional in the types but must be required in our own wrapper types.
 - Scope values: `SingleItem`, `ItemAndDescendants`.
 - MergeStrategy values: `OverrideExistingItem`, `KeepExistingItem`, `LatestWin`, `OverrideExistingTree`. There is no `SkipIfExist`.
@@ -54,10 +58,8 @@ If this skill disagrees with the installed types, the installed types win.
 1. The request wrapper shape and query-vs-mutation exposure (see Conventions).
 2. Whether chunk ids start at 0 or 1.
 3. Whether the client returns the `getChunk` body as an intact `Blob` (check `blob.size > 0`).
-4. How to know when a chunk is media (`isMedia` on saveChunk). Leave it unset until known.
-5. Whether `ContentTransferFileName` is already the full path `consumeFile` expects.
-6. What `getBlobState` statuses (`OK`, `NotFound`, `Error`) mean while a file is still being consumed.
-7. The names of transfer states other than `Completed`, including a failed state.
+4. Whether the browser client exposes the `Content-Disposition` header of the getChunk response, so `IsMedia` can be read. (Confirmed from a sample response, but not yet from the client.)
+5. The names of transfer states other than `Completed`, including a failed state.
 Log the raw outputs of these on first runs, then update this skill with what is confirmed.
 
 ## Not covered

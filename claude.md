@@ -57,7 +57,7 @@ Selection:
 
 # Code style
 - 2-space indentation, named exports for React components.
-- GraphQL queries live in `src/utils/graphqlQueries/queries.ts`.
+- GraphQL queries live in `src/utils/graphqlQueries.ts`.
 - Models live in `src/models`.
 - Comment non-obvious logic and the reason for it, not every line.
 - UI: follow the Blok design system, Tailwind + shadcn components.

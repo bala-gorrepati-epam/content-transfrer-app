@@ -15,6 +15,6 @@ export interface ItemNode {
 }
 
 export interface PageInfo {
-  endCursor: string,
-  hasNextPage: string,
+  endCursor: string | null,
+  hasNextPage: boolean,
 }

@@ -61,7 +61,7 @@ Poll until `State` is `Completed`. Other state names are unverified: treat an un
 state as a failure and show the raw `State`. Use a poll interval and a timeout.
 
 ```ts
-const status = await client.mutate("xmc.contentTransfer.getContentTransferStatus", {
+const status = await client.query("xmc.contentTransfer.getContentTransferStatus", {
   params: {
     path: { transferId },
     query: { sitecoreContextId: sourceContextId },
@@ -84,8 +84,12 @@ Params:
 Response is binary. Keep it as a `Blob` and pass it unchanged to saveChunk.
 Unverified: whether the Marketplace client returns it intact in the browser. Test one chunk first and check `blob.size > 0`.
 
+The response's `Content-Disposition` header carries the media flag that saveChunk needs:
+`form-data; ItemsProcessed=1; ItemsSkipped=0; IsMedia=false` (`IsMedia` is `true` or `false`).
+Read it from the SDK result's `response` object (`result.data.response.headers`), not from the body.
+
 ```ts
-const chunk = await client.mutate("xmc.contentTransfer.getChunk", {
+const chunk = await client.query("xmc.contentTransfer.getChunk", {
   params: {
     path: { transferId, chunksetId, chunkId },
     query: { sitecoreContextId: sourceContextId },
@@ -104,17 +108,16 @@ Params:
 - `path.transferId: string`
 - `path.chunksetId: string`
 - `path.chunkId: number`
-- `query.isMedia?: boolean` (default false; whether this chunk is media)
+- `query.isMedia?: boolean` (default false; whether this chunk is media). Use the `IsMedia` value from the
+  same chunk's getChunk response (`Content-Disposition` header, see section 3).
 - `query.sitecoreContextId?: string` (destination)
 
-Unverified: how to know whether a chunk is media. Leave `isMedia` unset unless known, and check the
-Sitecore docs before copying media items.
-
 ```ts
+const isMedia = readIsMedia(chunkRes.data?.response, chunkSetId, chunkId); // parses IsMedia=true|false
 await client.mutate("xmc.contentTransfer.saveChunk", {
   params: {
     path: { transferId, chunksetId, chunkId },
-    query: { sitecoreContextId: destinationContextId },
+    query: { sitecoreContextId: destinationContextId, isMedia },
     body: chunk,
   },
 });
@@ -158,17 +161,15 @@ Environment: DESTINATION. `/items/v2/ConsumeFile`. Success: 202 (raif file consu
 
 Params (all in `query`, no path or body):
 - `query.databaseName: string` (required, e.g. `master`)
-- `query.fileName: string` (required, full path of the `.raif` file, from step 5)
+- `query.fileName: string` (required, the `ContentTransferFileName` from step 5 with a `blob://` prefix, e.g. `blob://<ContentTransferFileName>`)
 - `query.sitecoreContextId?: string` (destination)
 
-Unverified: whether `ContentTransferFileName` is already the full path the API expects.
-
 ```ts
-await client.mutate("xmc.contentTransfer.consumeFile", {
+await client.query("xmc.contentTransfer.consumeFile", {
   params: {
     query: {
       databaseName: "master",
-      fileName: contentTransferFileName,
+      fileName: `blob://${contentTransferFileName}`,
       sitecoreContextId: destinationContextId,
     },
   },
@@ -184,26 +185,32 @@ Consuming is asynchronous. Use step 7 to find out when it has finished.
 Environment: DESTINATION. `/items/v2/GetBlobState`. Success: 200.
 
 Params:
-- `query.fileName: string` (required, same file name as step 6)
+- `query.fileName: string` (required, the plain `ContentTransferFileName` from step 5, without the `blob://` prefix used in step 6)
 - `query.sitecoreContextId?: string` (destination)
 
-Response (lowercase keys, unlike steps 2 and 5):
+Response body (observed on a real run; PascalCase keys):
 ```ts
 {
-  status?: string; // e.g. "OK", "NotFound", "Error"
-  details?: { [key: string]: unknown };
+  BlobState: string;   // e.g. "Consumed"
+  Error: unknown;      // null when consuming has not failed
+  ConsumedName: string; // e.g. "consumed.20261105 112516 503408.<guid>"
+  Actions: { Details: string }; // relative URL of the status details page
 }
 ```
 
-Unverified: what each status means while a file is still being consumed. Poll, log `status` and
-`details` on the first runs, then fix the completion rule. Show `details` to the user on "Error".
+Completion rule: `BlobState === "Consumed"` is done. A non-null `Error` is a failure; show it to the user.
+Any other `BlobState` keeps polling until the timeout. Only `"Consumed"` has been observed so far.
+
+Note: the installed SDK types declare `status` and `details` (lowercase) for this response. They do not
+match the real API. The code types the body locally (`BlobStateResponse` in `src/models/contentTransfer.ts`).
 
 ```ts
-const state = await client.mutate("xmc.contentTransfer.getBlobState", {
+const state = await client.query("xmc.contentTransfer.getBlobState", {
   params: {
     query: { fileName: contentTransferFileName, sitecoreContextId: destinationContextId },
   },
 });
+const body = state.data?.data; // the body above, cast to BlobStateResponse
 ```
 
 ---

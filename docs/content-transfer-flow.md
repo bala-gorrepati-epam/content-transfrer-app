@@ -1,9 +1,9 @@
 # Content transfer flow
 Source operations use the source context ID. Destination operations use the destination context ID.
 
-1. Source: `xmc.contentTransfer.createContentTransfer` with the DataTree object (`<describe or link shape>`)
+1. Source: `xmc.contentTransfer.createContentTransfer` with `configuration.dataTrees`: one entry per selected item, each with `itemPath`, `scope` (`SingleItem` | `ItemAndDescendants`) and `mergeStrategy`. Shape in `src/models/contentTransfer.ts` (`DataTree`).
 2. Source: `xmc.contentTransfer.getContentTransferStatus`, poll every `5` s, timeout `10` min, until completed
-3. Source: `xmc.contentTransfer.getChunk` for each chunk (`<sequential/parallel>`). Save chunk as Blob.
+3. Source: `xmc.contentTransfer.getChunk` for each chunk, sequentially (one chunk at a time, then its save in step 4). Keep the chunk as a Blob.
 4. Destination: `xmc.contentTransfer.saveChunk` for each chunk
 5. Destination: `xmc.contentTransfer.completeChunkSetTransfer`
 6. Destination: `xmc.contentTransfer.consumeFile`
@@ -28,4 +28,4 @@ Source operations use the source context ID. Destination operations use the dest
 
 ## Failure handling
 - Show which step failed and the error message.
-- `<retry policy>`
+- No retries. A failed step stops the run. Step 8 (cleanup) still runs, and a cleanup error is shown as a warning without hiding the original failure.
