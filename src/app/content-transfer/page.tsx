@@ -6,6 +6,7 @@ import { useMarketplaceClient } from "@/src/utils/hooks/useMarketplaceClient";
 import type { EnvironmentOption } from "@/src/models/contentTransfer";
 import { FEATURES } from "@/src/features/registry";
 import { FeatureTabs } from "@/src/components/navigation/FeatureTabs";
+import { ThemeToggle } from "@/src/components/theme/ThemeToggle";
 
 function ContentTransfer() {
   const { client, error, isInitialized } = useMarketplaceClient();
@@ -46,7 +47,10 @@ function ContentTransfer() {
 
   return (
     <main className="min-h-screen bg-muted"><div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold">Content transfer</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Content transfer</h1>
+        <ThemeToggle />
+      </div>
       <FeatureTabs features={FEATURES} featureProps={{ client, environments }} />
     </div></main>
   );
