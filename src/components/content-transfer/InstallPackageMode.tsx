@@ -21,11 +21,7 @@ import type { FeatureProps } from "@/src/features/registry";
 import { PackageValidationError, readPackage, type ReadPackageResult } from "@/src/lib/contentPackage";
 import { runInstallPackage } from "@/src/lib/contentTransfer";
 import { useReportBusy } from "@/src/features/busy";
-import {
-  MERGE_STRATEGY_OPTIONS,
-  SCOPE_OPTIONS,
-  type TransferProgress,
-} from "@/src/models/contentTransfer";
+import { MERGE_STRATEGY_OPTIONS, SCOPE_OPTIONS, type TransferProgress } from "@/src/models/contentTransfer";
 
 interface LoadedPackage extends ReadPackageResult {
   fileName: string;
@@ -61,22 +57,12 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
     setOutcome(null);
   };
 
-  // The package stores only the source environment's display name, not its context ID, so the
-  // match is by name. An environment cannot receive the package it was exported from.
-  const exportedFrom = loaded?.manifest.sourceEnvironmentName;
-
   // Environments are referenced by index, so context IDs stay out of the DOM.
   const choices: EnvironmentChoice[] = useMemo(
-    () =>
-      environments.map((env, index) => ({
-        value: String(index),
-        label: env.name,
-        disabled: exportedFrom !== undefined && env.name === exportedFrom,
-      })),
-    [environments, exportedFrom],
+    () => environments.map((env, index) => ({ value: String(index), label: env.name })),
+    [environments],
   );
   const destination = destinationIndex !== null ? environments[Number(destinationIndex)] : undefined;
-  const destinationIsSource = destination !== undefined && destination.name === exportedFrom;
 
   const totals = useMemo(() => {
     if (!loaded) return null;
@@ -101,22 +87,14 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const next = { fileName: file.name, ...readPackage(bytes) };
       setLoaded(next);
-      // A destination chosen before this package was opened may be the environment it came from.
-      if (destination && destination.name === next.manifest.sourceEnvironmentName) {
-        setDestinationIndex(null);
-      }
     } catch (error) {
-      setLoadError(
-        error instanceof PackageValidationError
-          ? error.message
-          : "The file could not be read.",
-      );
+      setLoadError(error instanceof PackageValidationError ? error.message : "The file could not be read.");
     } finally {
       setLoading(false);
     }
   };
 
-  const canInstall = Boolean(loaded && destination) && !destinationIsSource && !running && !loading;
+  const canInstall = Boolean(loaded && destination) && !running && !loading;
 
   const handleConfirm = async () => {
     if (!loaded || !destination) return;
@@ -130,8 +108,7 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
         destinationContextId: destination.contextId,
         manifest: loaded.manifest,
         files: loaded.files,
-        onProgress: (step, state) =>
-          setProgress((prev) => (prev ? { ...prev, [step]: state } : prev)),
+        onProgress: (step, state) => setProgress((prev) => (prev ? { ...prev, [step]: state } : prev)),
       });
       setOutcome({ kind: "success", message: `Installed ${result.fileNames.length} file(s).` });
     } catch (error) {
@@ -164,7 +141,10 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
         />
         {loading && <p className="text-sm text-muted-foreground">Reading package…</p>}
         {loadError && (
-          <div role="alert" className="whitespace-pre-line rounded-md border border-destructive p-3 text-sm text-destructive">
+          <div
+            role="alert"
+            className="whitespace-pre-line rounded-md border border-destructive p-3 text-sm text-destructive"
+          >
             <p className="font-medium">This package cannot be installed:</p>
             <p>{loadError}</p>
           </div>
@@ -223,11 +203,6 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
               disabled={running}
               onChange={setDestinationIndex}
             />
-            {exportedFrom && (
-              <p className="text-xs text-muted-foreground">
-                {exportedFrom} is disabled because this package was exported from it.
-              </p>
-            )}
           </div>
           <div className="flex items-end justify-end">
             <Button disabled={!canInstall} onClick={() => setConfirmOpen(true)}>

@@ -1,4 +1,4 @@
-export const GET_ITEMS= `
+export const GET_ITEMS = `
   query GetItemChildren($path: String!, $after: String) {
     item(where: { path: $path, database: "master" }) {
       itemId
@@ -19,4 +19,4 @@ export const GET_ITEMS= `
       }
     }
   }
-`
+`;

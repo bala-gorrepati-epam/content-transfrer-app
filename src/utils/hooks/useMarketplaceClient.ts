@@ -46,7 +46,7 @@ async function getMarketplaceClient() {
 
   const config = {
     target: window.parent,
-     modules: [XMC],
+    modules: [XMC],
   };
 
   client = await ClientSDK.init(config);
@@ -55,9 +55,7 @@ async function getMarketplaceClient() {
 
 export function useMarketplaceClient(options: UseMarketplaceClientOptions = {}) {
   // Memoize the options to prevent unnecessary re-renders
-  const opts = useMemo(() => ({ ...DEFAULT_OPTIONS, ...options }), [
-    options,
-  ]);
+  const opts = useMemo(() => ({ ...DEFAULT_OPTIONS, ...options }), [options]);
 
   const [state, setState] = useState<MarketplaceClientState>({
     client: null,
@@ -69,10 +67,10 @@ export function useMarketplaceClient(options: UseMarketplaceClientOptions = {}) 
   // Use ref to track if we're currently initializing to prevent race conditions
   const isInitializingRef = useRef(false);
 
-  const initializeClient = useCallback(async (attempt = 1): Promise<void> => {
+  const initializeClient = useCallback(async (): Promise<void> => {
     // Use functional state update to check current state without dependencies
     let shouldProceed = false;
-    setState(prev => {
+    setState((prev) => {
       if (prev.isLoading || prev.isInitialized || isInitializingRef.current) {
         return prev;
       }
@@ -83,23 +81,30 @@ export function useMarketplaceClient(options: UseMarketplaceClientOptions = {}) 
 
     if (!shouldProceed) return;
 
+    // Retries in a loop rather than recursion: each failed attempt waits retryDelay before the next.
+    let lastError: unknown = null;
     try {
-      const client = await getMarketplaceClient();
-      setState({
-        client,
-        error: null,
-        isLoading: false,
-        isInitialized: true,
-      });
-    } catch (error) {
-      if (attempt < opts.retryAttempts) {
-        await new Promise(resolve => setTimeout(resolve, opts.retryDelay));
-        return initializeClient(attempt + 1);
+      for (let attempt = 1; attempt <= opts.retryAttempts; attempt++) {
+        try {
+          const client = await getMarketplaceClient();
+          setState({
+            client,
+            error: null,
+            isLoading: false,
+            isInitialized: true,
+          });
+          return;
+        } catch (error) {
+          lastError = error;
+          if (attempt < opts.retryAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, opts.retryDelay));
+          }
+        }
       }
 
       setState({
         client: null,
-        error: error instanceof Error ? error : new Error('Failed to initialize MarketplaceClient'),
+        error: lastError instanceof Error ? lastError : new Error("Failed to initialize MarketplaceClient"),
         isLoading: false,
         isInitialized: false,
       });
@@ -125,8 +130,11 @@ export function useMarketplaceClient(options: UseMarketplaceClientOptions = {}) 
   }, [opts.autoInit, initializeClient]);
 
   // Memoize the return value to prevent object recreation on every render
-  return useMemo(() => ({
-    ...state,
-    initialize: initializeClient,
-  }), [state, initializeClient]);
+  return useMemo(
+    () => ({
+      ...state,
+      initialize: initializeClient,
+    }),
+    [state, initializeClient],
+  );
 }

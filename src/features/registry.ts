@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { mdiBookOpenVariant, mdiTrayArrowDown, mdiTrayArrowUp, mdiSwapHorizontal } from "@mdi/js";
 import type { ClientSDK } from "@sitecore-marketplace-sdk/client";
 import { TransferMode } from "@/src/components/content-transfer/TransferMode";
 import type { EnvironmentOption } from "@/src/models/contentTransfer";
@@ -16,14 +17,16 @@ export interface FeatureProps {
 export interface FeatureDefinition {
   id: string;
   label: string;
+  // Blok (MDI) icon path shown in the navigation.
+  icon: string;
   component: ComponentType<FeatureProps>;
 }
 
 // To add a feature: build its component, then add one entry here. Array order is tab order;
 // the first entry is shown when the app opens.
 export const FEATURES: FeatureDefinition[] = [
-  { id: "transfer", label: "Transfer", component: TransferMode },
-  { id: "download-package", label: "Download package", component: DownloadPackageMode },
-  { id: "install-package", label: "Install package", component: InstallPackageMode },
-  { id: "known-issues", label: "Known issues", component: KnownIssuesMode },
+  { id: "transfer", label: "Transfer", icon: mdiSwapHorizontal, component: TransferMode },
+  { id: "download-package", label: "Package designer", icon: mdiTrayArrowDown, component: DownloadPackageMode },
+  { id: "install-package", label: "Install package", icon: mdiTrayArrowUp, component: InstallPackageMode },
+  { id: "known-issues", label: "Known issues", icon: mdiBookOpenVariant, component: KnownIssuesMode },
 ];

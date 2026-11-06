@@ -97,9 +97,7 @@ interface DestinationContext {
 }
 
 type PollStep<T> =
-  | { kind: "done"; value: T }
-  | { kind: "pending"; detail?: string }
-  | { kind: "failed"; message: string };
+  { kind: "done"; value: T } | { kind: "pending"; detail?: string } | { kind: "failed"; message: string };
 
 function errorMessage(err: unknown): string {
   if (typeof err === "string") return err;
@@ -131,7 +129,9 @@ function readIsMedia(response: Response | undefined, chunkSetId: string, chunkId
   const header = response?.headers.get("Content-Disposition") ?? "";
   const match = /(?:^|;)\s*IsMedia\s*=\s*(true|false)\s*(?:;|$)/i.exec(header);
   if (!match) {
-    throw new Error(`Chunk ${chunkId} of chunk set ${chunkSetId} has no IsMedia value in its Content-Disposition header.`);
+    throw new Error(
+      `Chunk ${chunkId} of chunk set ${chunkSetId} has no IsMedia value in its Content-Disposition header.`,
+    );
   }
   return match[1].toLowerCase() === "true";
 }
@@ -139,9 +139,7 @@ function readIsMedia(response: Response | undefined, chunkSetId: string, chunkId
 // consumeFile takes the file name with a blob:// prefix; getBlobState takes it without one.
 // The prefix is added only when missing, so a name that already has it is not doubled.
 function toBlobFileName(contentTransferFileName: string): string {
-  return contentTransferFileName.startsWith("blob://")
-    ? contentTransferFileName
-    : `blob://${contentTransferFileName}`;
+  return contentTransferFileName.startsWith("blob://") ? contentTransferFileName : `blob://${contentTransferFileName}`;
 }
 
 function sleep(ms: number) {
@@ -516,7 +514,8 @@ export async function runInstallPackage({
     for (const set of manifest.chunkSets) {
       for (const chunk of set.chunks) {
         const bytes = files.get(chunk.file);
-        if (!bytes) throw new Error(`Chunk ${chunk.chunkId} of chunk set ${set.chunkSetId} is missing from the package.`);
+        if (!bytes)
+          throw new Error(`Chunk ${chunk.chunkId} of chunk set ${set.chunkSetId} is missing from the package.`);
 
         const saved = await client.mutate("xmc.contentTransfer.saveChunk", {
           params: {

@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/src/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/src/components/ui/accordion";
 import { KNOWN_ISSUES } from "@/src/models/knownIssues";
 
 // Question-and-answer list of issues found while building the app. Entries live in src/models/knownIssues.ts.

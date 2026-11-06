@@ -5,15 +5,13 @@ import type { ApplicationContext } from "@sitecore-marketplace-sdk/client";
 import { useMarketplaceClient } from "@/src/utils/hooks/useMarketplaceClient";
 import type { EnvironmentOption } from "@/src/models/contentTransfer";
 import { FEATURES } from "@/src/features/registry";
-import { FeatureTabs } from "@/src/components/navigation/FeatureTabs";
-import { ThemeToggle } from "@/src/components/theme/ThemeToggle";
+import { AppShell } from "@/src/components/layout/AppShell";
 
 function ContentTransfer() {
   const { client, error, isInitialized } = useMarketplaceClient();
   const [appContext, setAppContext] = useState<ApplicationContext>();
 
   useEffect(() => {
-    console.log("Inside use effect")
     if (error) {
       console.error("Error initializing Marketplace client:", error);
       return;
@@ -46,13 +44,12 @@ function ContentTransfer() {
   }
 
   return (
-    <main className="min-h-screen bg-muted"><div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Content transfer</h1>
-        <ThemeToggle />
-      </div>
-      <FeatureTabs features={FEATURES} featureProps={{ client, environments }} />
-    </div></main>
+    <AppShell
+      title="Content Transfer App"
+      subtitle="SitecoreAI to SitecoreAI"
+      features={FEATURES}
+      featureProps={{ client, environments }}
+    />
   );
 }
 

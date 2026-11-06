@@ -81,8 +81,7 @@ export function DownloadPackageMode({ client, environments }: FeatureProps) {
         })),
         transferId,
         sink: memory.sink,
-        onProgress: (step, state) =>
-          setProgress((prev) => (prev ? { ...prev, [step]: state } : prev)),
+        onProgress: (step, state) => setProgress((prev) => (prev ? { ...prev, [step]: state } : prev)),
       });
       setResult({ fileName, blob: memory.toBlob() });
       setOutcome({

@@ -61,9 +61,7 @@ export function TreeNode({ node, depth, actions }: TreeNodeProps) {
           disabled={isCovered}
           aria-label={`Select ${name}`}
           onCheckedChange={(checked) =>
-            checked === true
-              ? actions.onSelect({ path: node.path, name })
-              : actions.onDeselect(node.path)
+            checked === true ? actions.onSelect({ path: node.path, name }) : actions.onDeselect(node.path)
           }
         />
 
@@ -71,13 +69,14 @@ export function TreeNode({ node, depth, actions }: TreeNodeProps) {
         <span className="truncate text-xs text-muted-foreground">{node.path}</span>
 
         {isCovered && <Badge variant="default">Covered</Badge>}
-        {isLoading && (
-          <LoadingSpinner label="Loading" />
-        )}
+        {isLoading && <LoadingSpinner label="Loading" />}
       </div>
 
       {node.load === "error" && (
-        <div className="flex items-center gap-2 py-1 text-sm text-destructive" style={{ paddingLeft: depth * INDENT_PX + 32 }}>
+        <div
+          className="flex items-center gap-2 py-1 text-sm text-destructive"
+          style={{ paddingLeft: depth * INDENT_PX + 32 }}
+        >
           <span>{node.error}</span>
           <Button variant="outline" size="sm" onClick={() => actions.onRetry(node)}>
             Retry
@@ -89,14 +88,18 @@ export function TreeNode({ node, depth, actions }: TreeNodeProps) {
         <ul>
           {node.childPaths.map((childPath) => {
             const child = actions.nodes[childPath];
-            return child ? (
-              <TreeNode key={childPath} node={child} depth={depth + 1} actions={actions} />
-            ) : null;
+            return child ? <TreeNode key={childPath} node={child} depth={depth + 1} actions={actions} /> : null;
           })}
 
           {node.pageInfo?.hasNextPage && (
             <li style={{ paddingLeft: (depth + 1) * INDENT_PX + 32 }} className="py-1">
-              <Button variant="link" size="sm" className="h-auto p-0" disabled={isLoading} onClick={() => actions.onLoadMore(node)}>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0"
+                disabled={isLoading}
+                onClick={() => actions.onLoadMore(node)}
+              >
                 {isLoading ? "Loading…" : "Load more"}
               </Button>
             </li>

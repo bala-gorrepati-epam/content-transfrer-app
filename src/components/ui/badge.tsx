@@ -23,8 +23,7 @@ const badgeVariants = cva(
         danger: "bg-danger-bg text-danger-fg",
         success: "bg-success-bg text-success-fg",
         warning: "bg-warning-bg text-warning-fg",
-        yellow:
-          "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200",
+        yellow: "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200",
         teal: "bg-teal-100 text-teal-800 dark:bg-teal-800 dark:text-teal-200",
         cyan: "bg-cyan-100 text-cyan-800 dark:bg-cyan-800 dark:text-cyan-200",
         blue: "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200",
@@ -46,17 +45,10 @@ function Badge({
   size = "md",
   asChild = false,
   ...props
-}: React.ComponentProps<"span"> &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
+}: React.ComponentProps<"span"> & VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
   const Comp = asChild ? SlotPrimitive.Slot : "span";
 
-  return (
-    <Comp
-      data-slot="badge"
-      className={cn(badgeVariants({ variant, colorScheme, size }), className)}
-      {...props}
-    />
-  );
+  return <Comp data-slot="badge" className={cn(badgeVariants({ variant, colorScheme, size }), className)} {...props} />;
 }
 
 export { Badge, badgeVariants };

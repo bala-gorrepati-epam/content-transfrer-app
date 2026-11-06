@@ -7,16 +7,11 @@ import type * as React from "react";
 
 import { cn } from "@/src/lib/utils";
 
-function Accordion({
-  ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Root>) {
+function Accordion({ ...props }: React.ComponentProps<typeof AccordionPrimitive.Root>) {
   return <AccordionPrimitive.Root data-slot="accordion" {...props} />;
 }
 
-function AccordionItem({
-  className,
-  ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Item>) {
+function AccordionItem({ className, ...props }: React.ComponentProps<typeof AccordionPrimitive.Item>) {
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
@@ -46,16 +41,10 @@ function AccordionTrigger({
           {...props}
         >
           {children}
-          <Icon
-            path={mdiChevronDown}
-            className="transition-transform duration-200 size-6 shrink-0"
-          />
+          <Icon path={mdiChevronDown} className="transition-transform duration-200 size-6 shrink-0" />
         </AccordionPrimitive.Trigger>
         {actions && (
-          <div
-            className="flex items-center shrink-0 py-4 px-2"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="flex items-center shrink-0 py-4 px-2" onClick={(e) => e.stopPropagation()}>
             {actions}
           </div>
         )}
@@ -64,11 +53,7 @@ function AccordionTrigger({
   );
 }
 
-function AccordionContent({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Content>) {
+function AccordionContent({ className, children, ...props }: React.ComponentProps<typeof AccordionPrimitive.Content>) {
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"

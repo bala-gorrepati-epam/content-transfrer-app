@@ -1,83 +1,79 @@
-# 🏪 Sitecore Marketplace Starter
+# Content Transfer App
 
-This project is the starter template for building Sitecore Marketplace extensions. It demonstrates five extension points: **Custom Field**, **Dashboard Widget**, **Fullscreen**, **Pages Context Panel**, and **Standalone**. Each extension point has its own UI and integration with the Sitecore Marketplace SDK.
+A SitecoreAI Marketplace standalone app that copies content items from one SitecoreAI environment to another, and can also package items into a zip file for import later.
 
-## 🧩 Extension Points
+## Introduction
 
-### 1. Custom Field Extension
+Moving content between SitecoreAI environments normally means exporting and importing by hand. This app does it from inside SitecoreAI:
 
-- **Location:** `app/custom-field-extension/page.tsx`
-- **Description:**  
-  Provides a button-based UI for selecting preset options to showcase how to update field values.
-  - Initializes the Marketplace SDK client.
-  - On button click,, updates the field value using client.setValue(selected) and closes the app after a short delay.
+- **Transfer:** copy selected items straight from a source environment to a destination.
+- **Download package:** export selected items from a source environment into a single `.zip` file.
+- **Install package:** load a `.zip` made by Download package and install it into a destination environment.
+- **Known issues:** a list of problems seen during development and how they were resolved.
 
----
+You browse the source environment's content tree, tick the items you want, and choose how each one should be merged into the destination (for example, override or keep the existing item).
 
-### 2. Dashboard Widget Extension
+## Getting Started
 
-- **Location:** `app/dashboard-widget-extension/page.tsx`
-- **Description:**  
-  Displays a widget in the XM Cloud dashboard.
-  - Initializes the Marketplace SDK client.
-  - Displays sample dashboard information.
+### Prerequisites
 
----
+- Node.js 20.9 or newer (Next.js 16 minimum) (this project was built on Node 26 LTS).
+- Access to a SitecoreAI tenant where the app is registered as a Marketplace standalone app.
 
-### 3. Fullscreen Extension
+### Install and run
 
-- **Location:** `app/fullscreen-extension/page.tsx`
-- **Description:**  
-  Provides a fullscreen experience to be rendered in the Pages application.
-  - Initializes the Marketplace SDK client.
-  - Displays sample dashboard information.
+```sh
+npm install
+npm run dev
+```
 
----
+The app runs at `http://localhost:3000`. Pages that use the Marketplace client only work when loaded inside SitecoreAI, because the client talks to the host through `window.parent`. A normal browser tab will show "Could not connect" or stay on "Loading".
 
-### 4. Pages Context Panel Extension
+### Register the app
 
-- **Location:** `app/pages-contextpanel-extension/page.tsx`
-- **Description:**  
-  Displays context information about the current page in the XM Cloud Pages editor.
-  - Initializes the Marketplace SDK client.
-  - Subscribes to `pages.context` using the SDK to handle events.
-  - Shows page ID, title, language, and path.
-  - Updates data automatically as the user changes selected page.
+Register the app in SitecoreAI as a standalone extension, pointing at the `/content-transfer` route. For details, see the [Sitecore Marketplace documentation](https://doc.sitecore.com/mp/en/developers/marketplace/introduction-to-sitecore-marketplace.html).
 
----
+### Useful commands
 
-### 5. Standalone Extension
+| Command         | What it does                                   |
+| --------------- | ---------------------------------------------- |
+| `npm run dev`   | Start the development server                   |
+| `npm run build` | Create a production build                      |
+| `npm run check` | Run ESLint and the Prettier check (no changes) |
+| `npm run fix`   | Run ESLint auto-fix and Prettier formatting    |
 
-- **Location:** `app/standalone-extension/page.tsx`
-- **Description:**  
-  Runs as a standalone app outside of other extension points.
-  - Initializes the Marketplace SDK client.
-  - Displays sample dashboard information.
+## Code Flow
 
-# 📦 Getting Started
+1. **Entry point:** `src/app/content-transfer/page.tsx` gets the Marketplace client and the list of environments the app can access. It shows a loading state until both are ready.
+2. **Layout:** `AppShell` draws the sidebar, top bar and content area. The sidebar lists the features defined in `src/features/registry.ts`.
+3. **Features:** each feature is a component that receives the client and environment list. Only the active feature is shown, and navigation is locked while a run is in progress.
+4. **Browsing:** the source tree loads children only when a node is expanded, and pages through large folders on request.
+5. **Transfer and package operations:** `src/lib/contentTransfer.ts` runs the content transfer steps against the SitecoreAI APIs, and reports progress for each step. Failures name the step that broke, and the source transfer is cleaned up in every case.
+6. **Packages:** `src/lib/contentPackage.ts` builds and validates the zip file. The package records the items, their chunks and the chunk metadata that Install needs.
 
-Note: You cannot access extension point routes directly in the browser (e.g., localhost:3000/...). These routes must be invoked within the Sitecore XM Cloud environment through the configured extension points.To learn how to properly configure and hook up your app to extension points, refer to the official [Sitecore Marketplace documentation](https://doc.sitecore.com/mp/en/developers/marketplace/extension-points.html)
+For the step-by-step API flow and the package format, see [docs/content-transfer-flow.md](docs/content-transfer-flow.md).
 
+## Technologies Used
 
-1. Create Your Own Repository:
-   - You can either fork this repository or create a new template based on it.
-   - This gives you a clean starting point with all the necessary scaffolding for Marketplace extension development.
+- **Next.js 16** with the App Router and TypeScript (strict mode).
+- **React 19.**
+- **Sitecore Marketplace SDK** (`@sitecore-marketplace-sdk/client` and `@sitecore-marketplace-sdk/xmc`) for the host connection and SitecoreAI calls.
+- **Tailwind CSS v4** for styling.
+- **Blok design system** (Sitecore), installed from its component registry, with shadcn-style components and Material Design icons.
+- **fflate** for building and reading zip packages.
+- **ESLint and Prettier** for code checks and formatting.
 
-2. Remove the endpoints you dont require
-   - Remove any extension points you don't plan to support by deleting their respective folders inside the app directory.
-   - Each folder in app corresponds to a specific extension point (e.g., custom-field-extension, dashboard-widget-extension, etc.).
+## 🤖 Built with Vibe Coding
 
-3. Install dependencies:
-   ```sh
-   npm install
-   ```
+This app was built entirely through vibe coding with [Claude](https://claude.com/claude-code), using Claude Code in the terminal. The code, styling, documentation and this README were written by Claude from plain-language requests, with the developer reviewing, running and testing each change.
 
-4. Run the development server:
-   ```sh
-   npm run dev
-   ```
+Project knowledge for Claude lives in:
 
-5. Install the application and test in the different extension points by following the [Sitecore documentation](https://doc.sitecore.com/mp/en/developers/marketplace/introduction-to-sitecore-marketplace.html)
+- [CLAUDE.md](CLAUDE.md): the project rules, architecture, SDK facts and open questions. Claude reads it at the start of each session.
+- [docs/content-transfer-flow.md](docs/content-transfer-flow.md): the content transfer flow and the package format.
+- `.claude/skills/content-transfer-sdk/`: the SDK operation reference used before any content transfer call is written.
+
+**Keep these up to date.** When you change behaviour, add a feature, confirm an unverified SDK detail, or change a setting, update CLAUDE.md, `docs/content-transfer-flow.md`, the skill and this README in the same change. Claude relies on these files to work correctly in later sessions, so out-of-date notes lead to wrong code.
 
 ## 📝 License
 

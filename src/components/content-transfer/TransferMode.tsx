@@ -14,9 +14,18 @@ import {
 import { EnvironmentSelect } from "@/src/components/content-transfer/EnvironmentSelect";
 import { SelectionPanel } from "@/src/components/content-transfer/SelectionPanel";
 import { SourceTree } from "@/src/components/content-transfer/SourceTree";
-import { TransferProgressView, initialProgress, type TransferOutcome } from "@/src/components/content-transfer/TransferProgressView";
+import {
+  TransferProgressView,
+  initialProgress,
+  type TransferOutcome,
+} from "@/src/components/content-transfer/TransferProgressView";
 import { runTransfer } from "@/src/lib/contentTransfer";
-import { MERGE_STRATEGY_OPTIONS, SCOPE_OPTIONS, type EnvironmentOption, type TransferProgress } from "@/src/models/contentTransfer";
+import {
+  MERGE_STRATEGY_OPTIONS,
+  SCOPE_OPTIONS,
+  type EnvironmentOption,
+  type TransferProgress,
+} from "@/src/models/contentTransfer";
 import { useSourceBrowser } from "@/src/utils/hooks/useSourceBrowser";
 import { useReportBusy } from "@/src/features/busy";
 
@@ -48,8 +57,7 @@ export function TransferMode({ client, environments }: TransferModeProps) {
   const destination = destinationIndex !== null ? environments[Number(destinationIndex)] : undefined;
 
   const sameEnvironment = sourceIndex !== null && sourceIndex === destinationIndex;
-  const canRun =
-    Boolean(source && destination) && !sameEnvironment && selection.items.length > 0 && !running;
+  const canRun = Boolean(source && destination) && !sameEnvironment && selection.items.length > 0 && !running;
 
   useReportBusy(running);
 
@@ -84,8 +92,7 @@ export function TransferMode({ client, environments }: TransferModeProps) {
           scope: item.scope,
           mergeStrategy: item.mergeStrategy,
         })),
-        onProgress: (step, state) =>
-          setProgress((prev) => (prev ? { ...prev, [step]: state } : prev)),
+        onProgress: (step, state) => setProgress((prev) => (prev ? { ...prev, [step]: state } : prev)),
       });
       setOutcome({ kind: "success", message: `Transferred ${result.fileNames.length} file(s).` });
     } catch (error) {

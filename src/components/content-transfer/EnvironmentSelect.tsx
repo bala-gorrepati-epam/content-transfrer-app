@@ -1,13 +1,7 @@
 "use client";
 
 import { Label } from "@/src/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/src/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select";
 
 export interface EnvironmentChoice {
   // Index into the environment list, as a string. Context IDs never reach the DOM.
@@ -37,7 +31,6 @@ export function EnvironmentSelect({
   disabled,
   onChange,
 }: EnvironmentSelectProps) {
-  console.log(value)
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>

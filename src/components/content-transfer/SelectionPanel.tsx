@@ -3,13 +3,7 @@
 import { mdiClose } from "@mdi/js";
 import { Button } from "@/src/components/ui/button";
 import { Icon } from "@/src/lib/icon";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/src/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select";
 import {
   MERGE_STRATEGY_OPTIONS,
   SCOPE_OPTIONS,
@@ -35,11 +29,7 @@ export function SelectionPanel({
   onRemove,
 }: SelectionPanelProps) {
   if (items.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Nothing selected yet. Tick items in the tree to add them.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">Nothing selected yet. Tick items in the tree to add them.</p>;
   }
 
   return (

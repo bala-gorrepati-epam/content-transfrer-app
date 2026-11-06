@@ -33,8 +33,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground hover:bg-primary-600 active:bg-primary-700",
+        default: "bg-primary text-primary-foreground hover:bg-primary-600 active:bg-primary-700",
         outline:
           "border bg-backgrounds hover:bg-neutral-bg hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
         ghost: "bg-transparent hover:bg-neutral-bg active:bg-neutral-bg-active",
@@ -63,26 +62,22 @@ const buttonVariants = cva(
       {
         variant: "default",
         colorScheme: "primary",
-        class:
-          "bg-primary text-inverse-text hover:bg-primary-hover active:bg-primary-active",
+        class: "bg-primary text-inverse-text hover:bg-primary-hover active:bg-primary-active",
       },
       {
         variant: "default",
         colorScheme: "success",
-        class:
-          "bg-success text-inverse-text hover:bg-success-hover active:bg-success-active",
+        class: "bg-success text-inverse-text hover:bg-success-hover active:bg-success-active",
       },
       {
         variant: "default",
         colorScheme: "danger",
-        class:
-          "bg-danger text-inverse-text hover:bg-danger-hover active:bg-danger-active",
+        class: "bg-danger text-inverse-text hover:bg-danger-hover active:bg-danger-active",
       },
       {
         variant: "default",
         colorScheme: "neutral",
-        class:
-          "bg-neutral text-inverse-text hover:bg-neutral-hover active:bg-neutral-active",
+        class: "bg-neutral text-inverse-text hover:bg-neutral-hover active:bg-neutral-active",
       },
       {
         variant: "default",
@@ -92,50 +87,42 @@ const buttonVariants = cva(
       {
         variant: "outline",
         colorScheme: "primary",
-        class:
-          "border text-primary-fg hover:bg-primary-bg hover:text-primary-fg active:bg-primary-bg-active",
+        class: "border text-primary-fg hover:bg-primary-bg hover:text-primary-fg active:bg-primary-bg-active",
       },
       {
         variant: "outline",
         colorScheme: "success",
-        class:
-          "border text-success-fg hover:bg-success-bg hover:text-success-fg active:bg-success-bg-active",
+        class: "border text-success-fg hover:bg-success-bg hover:text-success-fg active:bg-success-bg-active",
       },
       {
         variant: "outline",
         colorScheme: "danger",
-        class:
-          "border text-danger-fg hover:bg-danger-bg hover:text-danger-fg active:bg-danger-bg-active",
+        class: "border text-danger-fg hover:bg-danger-bg hover:text-danger-fg active:bg-danger-bg-active",
       },
       {
         variant: "outline",
         colorScheme: "neutral",
-        class:
-          "border text-neutral-fg hover:bg-neutral-bg hover:text-neutral-fg active:bg-neutral-bg-active",
+        class: "border text-neutral-fg hover:bg-neutral-bg hover:text-neutral-fg active:bg-neutral-bg-active",
       },
       {
         variant: "ghost",
         colorScheme: "primary",
-        class:
-          "text-primary-fg hover:bg-primary-bg hover:text-primary-fg active:bg-primary-bg-active",
+        class: "text-primary-fg hover:bg-primary-bg hover:text-primary-fg active:bg-primary-bg-active",
       },
       {
         variant: "ghost",
         colorScheme: "success",
-        class:
-          "text-success-fg hover:bg-success-bg hover:text-success-fg active:bg-success-bg-active",
+        class: "text-success-fg hover:bg-success-bg hover:text-success-fg active:bg-success-bg-active",
       },
       {
         variant: "ghost",
         colorScheme: "danger",
-        class:
-          "text-danger-fg hover:bg-danger-bg hover:text-danger-fg active:bg-danger-bg-active",
+        class: "text-danger-fg hover:bg-danger-bg hover:text-danger-fg active:bg-danger-bg-active",
       },
       {
         variant: "ghost",
         colorScheme: "neutral",
-        class:
-          "text-neutral-fg hover:bg-neutral-bg hover:text-neutral-fg active:bg-neutral-bg-active",
+        class: "text-neutral-fg hover:bg-neutral-bg hover:text-neutral-fg active:bg-neutral-bg-active",
       },
       {
         variant: "link",

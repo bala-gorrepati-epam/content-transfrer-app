@@ -21,19 +21,12 @@ function useProgressStyles(needed: boolean | undefined) {
   }, [needed]);
 }
 
-interface ProgressProps
-  extends React.ComponentProps<typeof ProgressPrimitive.Root> {
+interface ProgressProps extends React.ComponentProps<typeof ProgressPrimitive.Root> {
   variant?: "default" | "indeterminate";
   isIndeterminate?: boolean;
 }
 
-function Progress({
-  className,
-  value,
-  variant,
-  isIndeterminate,
-  ...props
-}: ProgressProps) {
+function Progress({ className, value, variant, isIndeterminate, ...props }: ProgressProps) {
   const indeterminate = variant === "indeterminate" || isIndeterminate;
   useProgressStyles(indeterminate);
 
@@ -42,19 +35,14 @@ function Progress({
       data-slot="progress"
       data-indeterminate={indeterminate ? "" : undefined}
       aria-label={indeterminate ? "Progress" : `Progress: ${value ?? 0}%`}
-      className={cn(
-        "relative h-2 w-full overflow-hidden rounded-full bg-neutral-bg",
-        className,
-      )}
+      className={cn("relative h-2 w-full overflow-hidden rounded-full bg-neutral-bg", className)}
       {...props}
     >
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
         className={cn(
           "h-full rounded-full transition-all",
-          indeterminate
-            ? "absolute min-w-[50%] w-[50%] bg-primary"
-            : "flex-1 w-full bg-primary",
+          indeterminate ? "absolute min-w-[50%] w-[50%] bg-primary" : "flex-1 w-full bg-primary",
         )}
         style={
           indeterminate

@@ -3,11 +3,7 @@
 
 export type Scope = "SingleItem" | "ItemAndDescendants";
 
-export type MergeStrategy =
-  | "OverrideExistingItem"
-  | "KeepExistingItem"
-  | "LatestWin"
-  | "OverrideExistingTree";
+export type MergeStrategy = "OverrideExistingItem" | "KeepExistingItem" | "LatestWin" | "OverrideExistingTree";
 
 export interface SelectedItem {
   path: string;

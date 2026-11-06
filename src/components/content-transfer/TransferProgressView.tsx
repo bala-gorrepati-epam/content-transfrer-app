@@ -4,22 +4,10 @@ import { mdiAlert, mdiCheckCircle, mdiCircleOutline, mdiCloseCircle } from "@mdi
 import { Alert, AlertDescription, AlertTitle } from "@/src/components/ui/alert";
 import { LoadingSpinner } from "@/src/components/ui/loading-spinner";
 import { Icon } from "@/src/lib/icon";
-import type {
-  TransferProgress,
-  TransferStepId,
-  TransferStepState,
-} from "@/src/models/contentTransfer";
+import type { TransferProgress, TransferStepId, TransferStepState } from "@/src/models/contentTransfer";
 
 // Order matches the steps in docs/content-transfer-flow.md.
-export const STEP_IDS: TransferStepId[] = [
-  "create",
-  "status",
-  "chunks",
-  "complete",
-  "consume",
-  "blobState",
-  "cleanup",
-];
+export const STEP_IDS: TransferStepId[] = ["create", "status", "chunks", "complete", "consume", "blobState", "cleanup"];
 
 const STEP_LABELS: Record<TransferStepId, string> = {
   create: "Create transfer (source)",

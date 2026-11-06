@@ -10,16 +10,11 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-primary-bg [&>svg]:text-primary-500 dark:[&>svg]:text-primary-200",
-        primary:
-          "bg-primary-bg [&>svg]:text-primary-500 dark:[&>svg]:text-primary-200",
-        danger:
-          "bg-danger-bg [&>svg]:text-danger-500 dark:[&>svg]:text-danger-200",
-        warning:
-          "bg-warning-bg [&>svg]:text-warning-500 dark:[&>svg]:text-warning-200",
-        success:
-          "bg-success-bg [&>svg]:text-success-500 dark:[&>svg]:text-success-200",
+        default: "bg-primary-bg [&>svg]:text-primary-500 dark:[&>svg]:text-primary-200",
+        primary: "bg-primary-bg [&>svg]:text-primary-500 dark:[&>svg]:text-primary-200",
+        danger: "bg-danger-bg [&>svg]:text-danger-500 dark:[&>svg]:text-danger-200",
+        warning: "bg-warning-bg [&>svg]:text-warning-500 dark:[&>svg]:text-warning-200",
+        success: "bg-success-bg [&>svg]:text-success-500 dark:[&>svg]:text-success-200",
       },
     },
     defaultVariants: {
@@ -42,19 +37,8 @@ function Alert({
   ...props
 }: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
   return (
-    <div
-      data-slot="alert"
-      role="alert"
-      className={cn(alertVariants({ variant }), className)}
-      {...props}
-    >
-      {variant && (
-        <Icon
-          path={variantIcons[variant]}
-          size={1.2}
-          className="text-current"
-        />
-      )}
+    <div data-slot="alert" role="alert" className={cn(alertVariants({ variant }), className)} {...props}>
+      {variant && <Icon path={variantIcons[variant]} size={1.2} className="text-current" />}
       {props.children}
     </div>
   );
@@ -64,26 +48,17 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-title"
-      className={cn(
-        "col-start-2 line-clamp-1 min-h-4 font-semibold tracking-tight",
-        className,
-      )}
+      className={cn("col-start-2 line-clamp-1 min-h-4 font-semibold tracking-tight", className)}
       {...props}
     />
   );
 }
 
-function AlertDescription({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function AlertDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-description"
-      className={cn(
-        "text-md col-start-2 grid justify-items-start gap-1 [&_p]:leading-relaxed",
-        className,
-      )}
+      className={cn("text-md col-start-2 grid justify-items-start gap-1 [&_p]:leading-relaxed", className)}
       {...props}
     />
   );
