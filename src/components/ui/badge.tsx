@@ -1,47 +1,62 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
-import { Slot } from "radix-ui"
+import { type VariantProps, cva } from "class-variance-authority";
+import { Slot as SlotPrimitive } from "radix-ui";
+import type * as React from "react";
+
+import { cn } from "@/src/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3",
+  "inline-flex items-center px-2 justify-center rounded-[4px] w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
-        secondary:
-          "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
-        destructive:
-          "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
-        outline:
-          "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
-        ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 [a&]:hover:underline",
+        default: "font-normal",
+        bold: "uppercase font-bold",
+      },
+      size: {
+        sm: "text-sm h-4",
+        md: "text-md h-5",
+        lg: "text-md h-6",
+      },
+      colorScheme: {
+        neutral: "bg-neutral-bg text-neutral-fg",
+        primary: "bg-primary-bg text-primary-fg",
+        danger: "bg-danger-bg text-danger-fg",
+        success: "bg-success-bg text-success-fg",
+        warning: "bg-warning-bg text-warning-fg",
+        yellow:
+          "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200",
+        teal: "bg-teal-100 text-teal-800 dark:bg-teal-800 dark:text-teal-200",
+        cyan: "bg-cyan-100 text-cyan-800 dark:bg-cyan-800 dark:text-cyan-200",
+        blue: "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200",
+        pink: "bg-pink-100 text-pink-800 dark:bg-pink-800 dark:text-pink-200",
       },
     },
     defaultVariants: {
+      colorScheme: "neutral",
+      size: "md",
       variant: "default",
     },
-  }
-)
+  },
+);
 
 function Badge({
   className,
-  variant = "default",
+  variant,
+  colorScheme,
+  size = "md",
   asChild = false,
   ...props
 }: React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : "span"
+  const Comp = asChild ? SlotPrimitive.Slot : "span";
 
   return (
     <Comp
       data-slot="badge"
-      data-variant={variant}
-      className={cn(badgeVariants({ variant }), className)}
+      className={cn(badgeVariants({ variant, colorScheme, size }), className)}
       {...props}
     />
-  )
+  );
 }
 
-export { Badge, badgeVariants }
+export { Badge, badgeVariants };

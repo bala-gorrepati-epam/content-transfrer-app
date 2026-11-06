@@ -61,12 +61,22 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
     setOutcome(null);
   };
 
+  // The package stores only the source environment's display name, not its context ID, so the
+  // match is by name. An environment cannot receive the package it was exported from.
+  const exportedFrom = loaded?.manifest.sourceEnvironmentName;
+
   // Environments are referenced by index, so context IDs stay out of the DOM.
   const choices: EnvironmentChoice[] = useMemo(
-    () => environments.map((env, index) => ({ value: String(index), label: env.name })),
-    [environments],
+    () =>
+      environments.map((env, index) => ({
+        value: String(index),
+        label: env.name,
+        disabled: exportedFrom !== undefined && env.name === exportedFrom,
+      })),
+    [environments, exportedFrom],
   );
   const destination = destinationIndex !== null ? environments[Number(destinationIndex)] : undefined;
+  const destinationIsSource = destination !== undefined && destination.name === exportedFrom;
 
   const totals = useMemo(() => {
     if (!loaded) return null;
@@ -89,7 +99,12 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
     setLoading(true);
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
-      setLoaded({ fileName: file.name, ...readPackage(bytes) });
+      const next = { fileName: file.name, ...readPackage(bytes) };
+      setLoaded(next);
+      // A destination chosen before this package was opened may be the environment it came from.
+      if (destination && destination.name === next.manifest.sourceEnvironmentName) {
+        setDestinationIndex(null);
+      }
     } catch (error) {
       setLoadError(
         error instanceof PackageValidationError
@@ -101,7 +116,7 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
     }
   };
 
-  const canInstall = Boolean(loaded && destination) && !running && !loading;
+  const canInstall = Boolean(loaded && destination) && !destinationIsSource && !running && !loading;
 
   const handleConfirm = async () => {
     if (!loaded || !destination) return;
@@ -199,14 +214,21 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
 
       {loaded && (
         <section className="grid gap-4 sm:grid-cols-2">
-          <EnvironmentSelect
-            id="install-destination-environment"
-            label="Destination"
-            choices={choices}
-            value={destinationIndex}
-            disabled={running}
-            onChange={setDestinationIndex}
-          />
+          <div className="flex flex-col gap-2">
+            <EnvironmentSelect
+              id="install-destination-environment"
+              label="Destination"
+              choices={choices}
+              value={destinationIndex}
+              disabled={running}
+              onChange={setDestinationIndex}
+            />
+            {exportedFrom && (
+              <p className="text-xs text-muted-foreground">
+                {exportedFrom} is disabled because this package was exported from it.
+              </p>
+            )}
+          </div>
           <div className="flex items-end justify-end">
             <Button disabled={!canInstall} onClick={() => setConfirmOpen(true)}>
               Install package

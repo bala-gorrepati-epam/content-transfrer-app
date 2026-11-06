@@ -13,6 +13,8 @@ export interface EnvironmentChoice {
   // Index into the environment list, as a string. Context IDs never reach the DOM.
   value: string;
   label: string;
+  // Shown but not selectable, e.g. the environment a package was exported from.
+  disabled?: boolean;
 }
 
 interface EnvironmentSelectProps {
@@ -45,7 +47,11 @@ export function EnvironmentSelect({
         </SelectTrigger>
         <SelectContent>
           {choices.map((choice) => (
-            <SelectItem key={choice.value} value={choice.value} disabled={choice.value === disabledValue}>
+            <SelectItem
+              key={choice.value}
+              value={choice.value}
+              disabled={choice.disabled || choice.value === disabledValue}
+            >
               {choice.label}
             </SelectItem>
           ))}

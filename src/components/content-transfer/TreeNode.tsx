@@ -68,7 +68,7 @@ export function TreeNode({ node, depth, actions }: TreeNodeProps) {
         <span className="truncate text-sm font-medium">{name}</span>
         <span className="truncate text-xs text-muted-foreground">{node.path}</span>
 
-        {isCovered && <Badge variant="secondary">Covered</Badge>}
+        {isCovered && <Badge variant="default">Covered</Badge>}
         {isLoading && (
           <LoaderCircle className="size-4 shrink-0 animate-spin text-muted-foreground" aria-label="Loading" />
         )}

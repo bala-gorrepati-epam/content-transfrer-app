@@ -107,7 +107,7 @@ export function TransferProgressView({ progress, outcome, steps = STEP_IDS }: Tr
       </ol>
 
       {outcome && (
-        <Alert variant={outcome.kind === "failure" ? "destructive" : "default"}>
+        <Alert variant={outcome.kind === "failure" ? "danger" : "default"}>
           <AlertTitle>{outcome.kind === "failure" ? "Transfer failed" : "Transfer finished"}</AlertTitle>
           <AlertDescription>{outcome.message}</AlertDescription>
         </Alert>
