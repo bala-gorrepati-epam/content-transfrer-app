@@ -127,7 +127,7 @@ export function DownloadPackageMode({ client, environments }: FeatureProps) {
       </section>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
           <h2 className="text-lg font-semibold">Source items</h2>
           {source ? (
             <SourceTree nodes={tree.nodes} actions={treeActions} />
@@ -136,7 +136,7 @@ export function DownloadPackageMode({ client, environments }: FeatureProps) {
           )}
         </section>
 
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
           <h2 className="text-lg font-semibold">Selected items</h2>
           <SelectionPanel
             items={selection.items}

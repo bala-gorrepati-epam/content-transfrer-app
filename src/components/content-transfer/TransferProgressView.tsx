@@ -1,7 +1,9 @@
 "use client";
 
-import { CircleCheck, CircleX, Circle, LoaderCircle, TriangleAlert } from "lucide-react";
+import { mdiAlert, mdiCheckCircle, mdiCircleOutline, mdiCloseCircle } from "@mdi/js";
 import { Alert, AlertDescription, AlertTitle } from "@/src/components/ui/alert";
+import { LoadingSpinner } from "@/src/components/ui/loading-spinner";
+import { Icon } from "@/src/lib/icon";
 import type {
   TransferProgress,
   TransferStepId,
@@ -54,15 +56,15 @@ export interface TransferOutcome {
 function StepIcon({ status }: { status: TransferStepState["status"] }) {
   switch (status) {
     case "running":
-      return <LoaderCircle className="size-4 animate-spin text-muted-foreground" aria-label="Running" />;
+      return <LoadingSpinner label="Running" />;
     case "done":
-      return <CircleCheck className="size-4 text-emerald-600" aria-label="Done" />;
+      return <Icon path={mdiCheckCircle} title="Done" className="size-4 text-green-700" />;
     case "failed":
-      return <CircleX className="size-4 text-destructive" aria-label="Failed" />;
+      return <Icon path={mdiCloseCircle} title="Failed" className="size-4 text-destructive" />;
     case "warning":
-      return <TriangleAlert className="size-4 text-amber-600" aria-label="Warning" />;
+      return <Icon path={mdiAlert} title="Warning" className="size-4 text-amber-600" />;
     default:
-      return <Circle className="size-4 text-muted-foreground/50" aria-label="Pending" />;
+      return <Icon path={mdiCircleOutline} title="Pending" className="size-4 text-muted-foreground/50" />;
   }
 }
 
@@ -80,7 +82,7 @@ interface TransferProgressViewProps {
 
 export function TransferProgressView({ progress, outcome, steps = STEP_IDS }: TransferProgressViewProps) {
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-sm">
       <h2 className="text-lg font-semibold">Progress</h2>
 
       <ol className="flex flex-col gap-2">

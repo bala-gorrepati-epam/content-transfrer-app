@@ -1,9 +1,11 @@
 "use client";
 
-import { ChevronDown, ChevronRight, LoaderCircle } from "lucide-react";
+import { mdiChevronDown, mdiChevronRight } from "@mdi/js";
 import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
 import { Checkbox } from "@/src/components/ui/checkbox";
+import { LoadingSpinner } from "@/src/components/ui/loading-spinner";
+import { Icon } from "@/src/lib/icon";
 import type { TreeNodeState } from "@/src/utils/hooks/useSourceTree";
 
 // Everything a row needs from its parent, passed down once instead of per prop.
@@ -48,7 +50,7 @@ export function TreeNode({ node, depth, actions }: TreeNodeProps) {
             aria-expanded={node.expanded}
             onClick={() => actions.onToggle(node)}
           >
-            {node.expanded ? <ChevronDown /> : <ChevronRight />}
+            <Icon path={node.expanded ? mdiChevronDown : mdiChevronRight} className="size-4" />
           </Button>
         ) : (
           <span className="size-6 shrink-0" aria-hidden="true" />
@@ -70,7 +72,7 @@ export function TreeNode({ node, depth, actions }: TreeNodeProps) {
 
         {isCovered && <Badge variant="default">Covered</Badge>}
         {isLoading && (
-          <LoaderCircle className="size-4 shrink-0 animate-spin text-muted-foreground" aria-label="Loading" />
+          <LoadingSpinner label="Loading" />
         )}
       </div>
 

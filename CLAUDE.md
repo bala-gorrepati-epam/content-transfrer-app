@@ -57,12 +57,12 @@ Selection:
 # Tech stack (versions in package.json)
 - Next 16.1.1 (Turbopack), React 19.1.1, TypeScript 5.9.2 (strict).
 - Node: v26.13.0 LTS, installed via winget. Earlier it was v22.2.0, which could not load Tailwind's ESM-only `magic-string`. Do not add an npm override for this.
-- Styling: Tailwind v4 (`@tailwindcss/postcss`, `tw-animate-css`), `src/app/globals.css`, shadcn config in `components.json` (style new-york, baseColor neutral, lucide icons). Aliases: `@/src/components`, `@/src/lib/utils`, `@/src/components/ui`, `@/src/utils/hooks`.
-- Components in `src/components/ui/` are Blok registry versions of accordion, alert, badge, button, checkbox, dialog, label, progress, select and tabs. Dependencies include `radix-ui` and `@mdi/js`, plus lucide-react for our own icons.
+- Styling: Tailwind v4 (`@tailwindcss/postcss`, `tw-animate-css`), `src/app/globals.css`, shadcn config in `components.json` (style new-york, baseColor neutral, icon library mdi). Aliases: `@/src/components`, `@/src/lib/utils`, `@/src/components/ui`, `@/src/utils/hooks`.
+- Components in `src/components/ui/` are Blok registry versions of accordion, alert, badge, button, checkbox, dialog, label, progress, select and tabs. Dependencies include `radix-ui` and `@mdi/js`.
 - Design system: Blok (Sitecore), https://blok.sitecore.com/. Installed from its shadcn-style registry, not an npm package:
   `npx shadcn@latest add https://blok.sitecore.com/r/theme.json <component urls>`, where component urls look like `https://blok.sitecore.com/r/button.json`. Applied to button, checkbox, select, dialog, tabs, accordion, badge, alert, progress and label. The theme added Blok's CSS variables to `src/app/globals.css`.
 - Blok variant names differ from shadcn defaults: Alert uses `danger` (not `destructive`), Badge has `default` and `bold` (no `secondary`), Button and Select follow the Blok set. Check `src/components/ui/*.tsx` for the valid variants before using one.
-- Blok's own components use @mdi icons (`src/lib/icon.tsx`). Our own components still use lucide-react.
+- Icons are Blok's set: `@mdi/js` paths rendered with `Icon` from `src/lib/icon.tsx`, e.g. `<Icon path={mdiClose} className="size-4" />`. Do not add lucide-react; it was removed.
 - SDK: `@sitecore-marketplace-sdk/client` ^0.3.6 and `@sitecore-marketplace-sdk/xmc` ^0.4.2. Installed types are in `node_modules/@sitecore-marketplace-sdk/xmc/dist/xmc/src/client-content-transfer/` (`sdk.gen.d.ts`, `augmentation.gen.d.ts`).
 
 # Architecture (where things are)

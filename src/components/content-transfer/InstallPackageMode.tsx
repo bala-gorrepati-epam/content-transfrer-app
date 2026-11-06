@@ -152,7 +152,7 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
         </Button>
       </div>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
         <h2 className="text-lg font-semibold">Package file</h2>
         <input
           ref={fileInputRef}
@@ -172,7 +172,7 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
       </section>
 
       {loaded && totals && (
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-sm">
           <h2 className="text-lg font-semibold">Package contents</h2>
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
             <div>

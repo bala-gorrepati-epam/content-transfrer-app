@@ -45,10 +45,10 @@ function ContentTransfer() {
   }
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
+    <main className="min-h-screen bg-muted"><div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
       <h1 className="text-2xl font-semibold">Content transfer</h1>
       <FeatureTabs features={FEATURES} featureProps={{ client, environments }} />
-    </main>
+    </div></main>
   );
 }
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { X } from "lucide-react";
+import { mdiClose } from "@mdi/js";
 import { Button } from "@/src/components/ui/button";
+import { Icon } from "@/src/lib/icon";
 import {
   Select,
   SelectContent,
@@ -58,7 +59,7 @@ export function SelectionPanel({
               disabled={disabled}
               onClick={() => onRemove(item.path)}
             >
-              <X />
+              <Icon path={mdiClose} className="size-4" />
             </Button>
           </div>
 
