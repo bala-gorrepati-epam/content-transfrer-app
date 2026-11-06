@@ -7,8 +7,8 @@ A SitecoreAI Marketplace standalone app that copies content items from one Sitec
 Moving content between SitecoreAI environments normally means exporting and importing by hand. This app does it from inside SitecoreAI:
 
 - **Transfer:** copy selected items straight from a source environment to a destination.
-- **Download package:** export selected items from a source environment into a single `.zip` file.
-- **Install package:** load a `.zip` made by Download package and install it into a destination environment.
+- **Package designer:** export selected items from a source environment into a single `.zip` file.
+- **Install package:** load a `.zip` made by Package designer and install it into a destination environment.
 - **Known issues:** a list of problems seen during development and how they were resolved.
 
 You browse the source environment's content tree, tick the items you want, and choose how each one should be merged into the destination (for example, override or keep the existing item).
@@ -17,7 +17,7 @@ You browse the source environment's content tree, tick the items you want, and c
 
 ### Prerequisites
 
-- Node.js 20.9 or newer (Next.js 16 minimum) (this project was built on Node 26 LTS).
+- Node.js 20.9 or newer (Next.js 16 minimum). This project was built on Node 26 LTS.
 - Access to a SitecoreAI tenant where the app is registered as a Marketplace standalone app.
 
 ### Install and run
@@ -29,9 +29,16 @@ npm run dev
 
 The app runs at `http://localhost:3000`. Pages that use the Marketplace client only work when loaded inside SitecoreAI, because the client talks to the host through `window.parent`. A normal browser tab will show "Could not connect" or stay on "Loading".
 
+The app can also be hosted on [Vercel](https://vercel.com) (or any other Next.js host). Deploy it, then register the deployed URL as the app's URL in SitecoreAI, so it can be used from the Marketplace app.
+
 ### Register the app
 
-Register the app in SitecoreAI as a standalone extension, pointing at the `/content-transfer` route. For details, see the [Sitecore Marketplace documentation](https://doc.sitecore.com/mp/en/developers/marketplace/introduction-to-sitecore-marketplace.html).
+Register the app in SitecoreAI as a standalone extension, pointing at the `/content-transfer` route. During registration, grant these permissions:
+
+- **API Access:** SitecoreAI APIs.
+- **Permissions:** Download files.
+
+Without these, the app cannot read environments or download packages. For details, see the [Sitecore Marketplace documentation](https://doc.sitecore.com/mp/en/developers/marketplace/introduction-to-sitecore-marketplace.html).
 
 ### Useful commands
 
