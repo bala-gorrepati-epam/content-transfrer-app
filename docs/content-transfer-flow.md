@@ -26,6 +26,30 @@ Source operations use the source context ID. Destination operations use the dest
   confirm the destination before installing.
 - For install from package, step 4 needs a `transferId`. Use a new id generated with `crypto.randomUUID()`.
 
+### Package file format (implemented by Download package)
+A zip with this layout (`src/lib/contentPackage.ts`, types in `src/models/contentPackage.ts`):
+- `manifest.json`: `formatVersion` (1), `transferId`, `createdAt` (ISO), `sourceEnvironmentName` (display only),
+  `dataTrees` (the selection, for display), and `chunkSets`.
+- Each chunk set: `chunkSetId`, `chunkCount`, `totalItemCount`, and `chunks`.
+- Each chunk: `chunkId`, `file` (its path in the zip) and `isMedia` (from the getChunk `IsMedia` header, so
+  Install can pass it to saveChunk).
+- Chunk bytes: `chunks/set-<index>/chunk-<chunkId>.bin`, copied unchanged from the getChunk Blob.
+
+Delivery (Download package):
+- The zip is written in memory (chunks are compressed as they arrive) and offered through a Download button.
+  One zip file.
+- A save dialog was tried and removed: the Marketplace iframe blocks the file picker (SecurityError), and the
+  streaming benefit did not justify it.
+
+Install package (implemented in `src/components/content-transfer/InstallPackageMode.tsx`):
+- The user uploads a zip. `readPackage` (`src/lib/contentPackage.ts`) checks it: manifest.json exists, formatVersion
+  matches, every chunk file listed in the manifest exists and is not empty, and chunk counts match. All problems are
+  shown together. Nothing is sent until the package is valid.
+- The package contents are shown (source name, creation time, items, chunk counts). The user picks the destination
+  and confirms. Destination must be chosen; source is not needed.
+- Steps 4 to 7 run with a new transferId (`crypto.randomUUID()`). Each chunk is saved with the chunkSetId, chunkId
+  and isMedia from the manifest. No source calls and no cleanup step.
+
 ## Failure handling
 - Show which step failed and the error message.
 - No retries. A failed step stops the run. Step 8 (cleanup) still runs, and a cleanup error is shown as a warning without hiding the original failure.

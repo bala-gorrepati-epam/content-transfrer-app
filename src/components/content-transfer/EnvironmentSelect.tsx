@@ -35,10 +35,11 @@ export function EnvironmentSelect({
   disabled,
   onChange,
 }: EnvironmentSelectProps) {
+  console.log(value)
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <Select value={value ?? undefined} onValueChange={onChange} disabled={disabled}>
+      <Select key={value ?? "empty"} value={value ?? undefined} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger id={id} className="w-full">
           <SelectValue placeholder="Choose an environment" />
         </SelectTrigger>

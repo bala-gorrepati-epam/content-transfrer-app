@@ -29,7 +29,15 @@ export type TransferStepId =
   | "complete"
   | "consume"
   | "blobState"
+  | "package" // download mode only: builds the zip
   | "cleanup";
+
+// An environment the user can pick. Context ID is for xmc calls only and is never rendered.
+export interface EnvironmentOption {
+  contextId: string;
+  // Display name (tenant display name), never the context ID.
+  name: string;
+}
 
 export type StepStatus = "pending" | "running" | "done" | "failed" | "warning";
 

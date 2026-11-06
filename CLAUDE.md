@@ -64,11 +64,14 @@ Selection:
 
 # Architecture (where things are)
 - `src/features/registry.ts`: the feature list (`FEATURES`). Add a feature by writing its component and adding one entry. Tab order follows the array. Features receive `{ client, environments }`.
-- `src/components/navigation/FeatureTabs.tsx`: tab UI. Inactive tabs stay mounted and hidden, so the Transfer tree and selection survive tab switches.
-- `src/components/content-transfer/`: `TransferMode` (container), `EnvironmentSelect`, `SourceTree`, `TreeNode`, `SelectionPanel`, `TransferProgressView`, and placeholders `DownloadPackageMode`, `InstallPackageMode`.
+- `src/components/navigation/FeatureTabs.tsx`: tab UI. Only the active tab is mounted, so switching tabs starts that tab fresh. Tabs lock while a feature reports a run (`useReportBusy` in `src/features/busy.ts`). Each feature has its own Clear button, disabled while running.
+- `src/components/content-transfer/`: `TransferMode` (Transfer tab), `DownloadPackageMode` (Download package tab), `EnvironmentSelect`, `SourceTree`, `TreeNode`, `SelectionPanel`, `TransferProgressView`, and the placeholder `InstallPackageMode`.
 - `src/components/known-issues/KnownIssuesMode.tsx`: accordion over `KNOWN_ISSUES` in `src/models/knownIssues.ts`. Add new issues there.
 - `src/lib/getItems.ts`: `GetItems(client, sourceContextId, path, after?)`, wraps `xmc.authoring.graphql`.
-- `src/lib/contentTransfer.ts`: `runTransfer(...)`, steps 1 to 8 with progress and cleanup.
+- `src/lib/contentTransfer.ts`: `runTransfer(...)` (steps 1 to 8) and `runDownloadPackage(...)` (steps 1 to 3, build the zip, cleanup). Both share the step helpers and `runSteps`, which attributes failures to a step and always cleans up.
+- `src/lib/contentPackage.ts`: `PackageZipWriter` (fflate, writes entries to a `PackageSink`), `createMemorySink` (Download), `readPackage` (validates an uploaded package for Install). Package format and delivery are in `docs/content-transfer-flow.md`.
+- Install package: `InstallPackageMode.tsx` and `runInstallPackage` in `src/lib/contentTransfer.ts` (steps 4 to 7 with a new transferId). Steps 5 to 7 are shared with Transfer through `importOnDestination`.
+- `src/utils/hooks/useSourceBrowser.ts`: source environment choice, tree and selection, shared by Transfer and Download package.
 - `src/utils/hooks/useSourceTree.ts`: lazy tree, pagination, per-node error and retry, stale-response guard using `epoch` and per-node `requestId`.
 - `src/utils/hooks/useTreeSelection.ts`: selections keyed by path, Scope and MergeStrategy, covered-item rules.
 - `src/utils/hooks/useMarketplaceClient.ts`: the only place the client is created.
@@ -95,7 +98,9 @@ Selection:
 - `xmc.authoring.graphql` response: `data.item` (with `children.nodes` and `pageInfo`) is the `Item` type.
 
 # Not built yet
-- Download package and Install package are placeholder tabs. Their steps are in the "Feature: content transfer" section above and in `docs/content-transfer-flow.md`.
+- Download package is built (`DownloadPackageMode`). It produces the zip described in `docs/content-transfer-flow.md`.
+- Install package is built (`InstallPackageMode`). It validates the uploaded zip, shows its contents, and imports it into the chosen destination after confirmation. It has not been run against a real environment yet.
+- The save dialog for Download was removed. The Marketplace iframe blocks file pickers. Do not reintroduce it without checking the host permission first.
 - No tests yet.
 
 # Working agreements

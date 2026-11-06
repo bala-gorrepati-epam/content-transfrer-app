@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ClientSDK } from "@sitecore-marketplace-sdk/client";
 import { Button } from "@/src/components/ui/button";
 import {
@@ -11,22 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/src/components/ui/dialog";
-import { EnvironmentSelect, type EnvironmentChoice } from "@/src/components/content-transfer/EnvironmentSelect";
+import { EnvironmentSelect } from "@/src/components/content-transfer/EnvironmentSelect";
 import { SelectionPanel } from "@/src/components/content-transfer/SelectionPanel";
 import { SourceTree } from "@/src/components/content-transfer/SourceTree";
 import { TransferProgressView, initialProgress, type TransferOutcome } from "@/src/components/content-transfer/TransferProgressView";
 import { runTransfer } from "@/src/lib/contentTransfer";
-import { MERGE_STRATEGY_OPTIONS, SCOPE_OPTIONS, type TransferProgress } from "@/src/models/contentTransfer";
-import { useSourceTree } from "@/src/utils/hooks/useSourceTree";
-import { useTreeSelection } from "@/src/utils/hooks/useTreeSelection";
-import type { TreeActions } from "@/src/components/content-transfer/TreeNode";
-
-export interface EnvironmentOption {
-  // Context ID for xmc calls. Never rendered.
-  contextId: string;
-  // Display name only (tenant display name), never the context ID.
-  name: string;
-}
+import { MERGE_STRATEGY_OPTIONS, SCOPE_OPTIONS, type EnvironmentOption, type TransferProgress } from "@/src/models/contentTransfer";
+import { useSourceBrowser } from "@/src/utils/hooks/useSourceBrowser";
+import { useReportBusy } from "@/src/features/busy";
 
 interface TransferModeProps {
   client: ClientSDK;
@@ -35,8 +27,6 @@ interface TransferModeProps {
 
 // Transfer mode: pick source and destination, select items in the source tree, run the transfer.
 export function TransferMode({ client, environments }: TransferModeProps) {
-  // Environments are referenced by their index in the list, so context IDs stay out of the DOM.
-  const [sourceIndex, setSourceIndex] = useState<string | null>(null);
   const [destinationIndex, setDestinationIndex] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [running, setRunning] = useState(false);
@@ -50,37 +40,26 @@ export function TransferMode({ client, environments }: TransferModeProps) {
     if (running) progressRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [running]);
 
-  const choices: EnvironmentChoice[] = useMemo(
-    () => environments.map((env, index) => ({ value: String(index), label: env.name })),
-    [environments],
+  const { choices, sourceIndex, setSourceIndex, source, tree, selection, treeActions } = useSourceBrowser(
+    client,
+    environments,
   );
 
-  const source = sourceIndex !== null ? environments[Number(sourceIndex)] : undefined;
   const destination = destinationIndex !== null ? environments[Number(destinationIndex)] : undefined;
-  const sourceContextId = source?.contextId ?? null;
-
-  const tree = useSourceTree(client, sourceContextId);
-  const selection = useTreeSelection();
-
-  // Selections belong to one source. A new source starts with no selection.
-  const clearSelection = selection.clear;
-  useEffect(() => {
-    clearSelection();
-  }, [sourceContextId, clearSelection]);
 
   const sameEnvironment = sourceIndex !== null && sourceIndex === destinationIndex;
   const canRun =
     Boolean(source && destination) && !sameEnvironment && selection.items.length > 0 && !running;
 
-  const treeActions: TreeActions = {
-    nodes: tree.nodes,
-    isSelected: (path) => Boolean(selection.selected[path]),
-    coveredBy: selection.coveredBy,
-    onToggle: tree.toggle,
-    onLoadMore: tree.loadMore,
-    onRetry: tree.retry,
-    onSelect: selection.select,
-    onDeselect: selection.deselect,
+  useReportBusy(running);
+
+  // Resets this tab. The tree and selection clear themselves when the source is cleared.
+  const handleClear = () => {
+    setSourceIndex(null);
+    setDestinationIndex(null);
+    setConfirmOpen(false);
+    setProgress(null);
+    setOutcome(null);
   };
 
   const handleSourceChange = (value: string) => {
@@ -121,6 +100,12 @@ export function TransferMode({ client, environments }: TransferModeProps) {
 
   return (
     <div className="flex flex-col gap-8">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" disabled={running} onClick={handleClear}>
+          Clear
+        </Button>
+      </div>
+
       <section className="grid gap-4 sm:grid-cols-2">
         <EnvironmentSelect
           id="source-environment"

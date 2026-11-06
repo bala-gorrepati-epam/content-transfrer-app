@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ApplicationContext } from "@sitecore-marketplace-sdk/client";
 import { useMarketplaceClient } from "@/src/utils/hooks/useMarketplaceClient";
-import type { EnvironmentOption } from "@/src/components/content-transfer/TransferMode";
+import type { EnvironmentOption } from "@/src/models/contentTransfer";
 import { FEATURES } from "@/src/features/registry";
 import { FeatureTabs } from "@/src/components/navigation/FeatureTabs";
 

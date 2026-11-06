@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { ClientSDK } from "@sitecore-marketplace-sdk/client";
-import { TransferMode, type EnvironmentOption } from "@/src/components/content-transfer/TransferMode";
+import { TransferMode } from "@/src/components/content-transfer/TransferMode";
+import type { EnvironmentOption } from "@/src/models/contentTransfer";
 import { DownloadPackageMode } from "@/src/components/content-transfer/DownloadPackageMode";
 import { InstallPackageMode } from "@/src/components/content-transfer/InstallPackageMode";
 import { KnownIssuesMode } from "@/src/components/known-issues/KnownIssuesMode";
