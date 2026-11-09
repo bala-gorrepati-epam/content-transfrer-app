@@ -4,7 +4,11 @@ A SitecoreAI Marketplace standalone app that copies content items from one Sitec
 
 ## Introduction
 
-Moving content between SitecoreAI environments normally means exporting and importing by hand. This app does it from inside SitecoreAI:
+Moving content between Sitecore environments typically involves exporting and importing packages. However, since this feature has been removed in Sitecore AI, teams must now rely on Sitecore AI APIs.
+
+This standalone marketplace app provides a user interface for seamless content transfer by calling Sitecore AI APIs in the background. While several similar apps are already publicly available on the marketplace, this custom solution is specifically designed for EPAM teams. This ensures that any bugs, issues, or upgrade requests can be quickly addressed and resolved internally, eliminating the need to depend on external vendors.
+
+The app includes the following key features:
 
 - **Transfer:** copy selected items straight from a source environment to a destination.
 - **Package designer:** export selected items from a source environment into a single `.zip` file.
