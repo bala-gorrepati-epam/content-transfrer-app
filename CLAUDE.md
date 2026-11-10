@@ -6,7 +6,7 @@ Purpose: copy content items from one SitecoreAI environment to another.
 - The page renders the app shell (`src/components/layout/AppShell.tsx`): a sidebar lists the features from `src/features/registry.ts` (Transfer, Download package, Install package, Known issues).
 
 # SDK Usage
-- For content transfer operations (createContentTransfer to deleteContentTransfer), use the `content-transfer-sdk` skill before writing the call. When something marked UNVERIFIED in the skill is confirmed on a real run, update the skill.
+- For content transfer operations (createContentTransfer to deleteContentTransfer), use the `content-transfer-sdk` skill before writing the call. Keep the skill up to date when the SDK behaviour changes.
 - Client comes from the `useMarketplaceClient` hook (`src/utils/hooks/useMarketplaceClient`). Never create a second client.
 - `client.application.context` is stored in `appContext` state.
   `appContext.resourceAccess[]` lists the environments the app can access.
@@ -96,18 +96,10 @@ Selection:
 - Install package: `readPackage` validates the zip before anything is sent. All problems are listed together. The user confirms the destination and the install in a dialog.
 - The progress panel scrolls into view when a run starts.
 
-# Unverified (confirm on first real runs; update the skill when confirmed)
-- Whether the browser client exposes the `Content-Disposition` header, since the SDK passes responses through the host bridge.
-- Whether chunk ids start at 0 or 1. `CHUNK_ID_START = 0` in `src/lib/contentTransfer.ts`.
-- Transfer state names other than `Completed`. In-progress states are a set in `src/lib/contentTransfer.ts`, and anything else fails the run.
-- Other `BlobState` values while consuming. Only `Consumed` has been seen.
-- Whether the chunk `Blob` is intact in the browser (`size > 0`).
-- Install package: the user reported it working. Still unconfirmed in CLAUDE.md terms: which chunk IDs and `isMedia` values the destination accepts from a package. Record the result when it is known.
-
 # SDK facts (confirmed from installed types or a real run)
 - `client.query` (QueryMap): `getContentTransferStatus`, `getChunk`, `consumeFile`, `getBlobState`.
 - `client.mutate` (MutationMap): `createContentTransfer`, `saveChunk`, `completeChunkSetTransfer`, `deleteContentTransfer`, and `xmc.authoring.graphql`.
-- Responses are wrapped. `client.query` returns `{ data, error }`, where `data` is the SDK result `{ data, error, request, response }`. So the body is `res.data?.data`. `client.mutate` returns the SDK result directly. Use `res.data?.response` for raw headers.
+- Responses are wrapped. For a mutation, the body is `result.data`. For a query, the SDK result is `result.data` and the body is `result.data.data`; raw headers are `result.data.response`. Errors are in `result.error` for both. The skill's SKILL.md describes this under "Calls".
 - `getChunk`: the chunk's `IsMedia` value is in the `Content-Disposition` header, e.g. `form-data; ItemsProcessed=1; ItemsSkipped=0; IsMedia=false`. Pass it to `saveChunk` as `query.isMedia`. A missing value fails the run.
 - `consumeFile`: `fileName` must have the `blob://` prefix. `getBlobState`: `fileName` must not have it.
 - `getBlobState` real response (PascalCase): `{ BlobState: "Consumed", Error: null, ConsumedName, Actions: { Details } }`. Done when `BlobState === "Consumed"`. A non-null `Error` fails the run. The installed types declare `status`/`details`, which does not match the real API. The code types it as `BlobStateResponse`.

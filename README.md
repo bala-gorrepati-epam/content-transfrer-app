@@ -84,7 +84,7 @@ Project knowledge for Claude lives in:
 - [docs/content-transfer-flow.md](docs/content-transfer-flow.md): the content transfer flow and the package format.
 - `.claude/skills/content-transfer-sdk/`: the SDK operation reference used before any content transfer call is written.
 
-**Keep these up to date.** When you change behaviour, add a feature, confirm an unverified SDK detail, or change a setting, update CLAUDE.md, `docs/content-transfer-flow.md`, the skill and this README in the same change. Claude relies on these files to work correctly in later sessions, so out-of-date notes lead to wrong code.
+**Keep these up to date.** When you change behaviour, add a feature, change how the SDK is used, or change a setting, update CLAUDE.md, `docs/content-transfer-flow.md`, the skill and this README in the same change. Claude relies on these files to work correctly in later sessions, so out-of-date notes lead to wrong code.
 
 ## 📝 License
 

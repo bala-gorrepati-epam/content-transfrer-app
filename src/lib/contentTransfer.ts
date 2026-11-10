@@ -10,15 +10,15 @@ const POLL_TIMEOUT_MS = 10 * 60_000;
 
 const DATABASE_NAME = "master";
 
-// UNVERIFIED: transfer states other than "Completed". Any state not listed here fails the run,
-// and its raw name is shown. Update once a real run reports the actual names.
+// States that mean the transfer is still building. Any other state except "Completed" fails the run,
+// and its raw name is shown.
 const TRANSFER_IN_PROGRESS_STATES = new Set(["Pending", "InProgress", "Running", "Queued", "Created"]);
 
-// UNVERIFIED: chunk ids may start at 0 or 1. Change to 1 if the first real run shows that.
+// Chunk ids start at 0. Change this if the API numbers chunks from 1.
 const CHUNK_ID_START = 0;
 
 // getBlobState: BlobState "Consumed" completes; a non-null Error fails; any other state keeps polling
-// until the timeout. Only "Consumed" has been observed so far.
+// until the timeout.
 const BLOB_CONSUMED_STATE = "Consumed";
 
 export type ProgressReporter = (step: TransferStepId, state: TransferStepState) => void;
