@@ -1,11 +1,12 @@
 import type { ComponentType } from "react";
-import { mdiBookOpenVariant, mdiTrayArrowDown, mdiTrayArrowUp, mdiSwapHorizontal } from "@mdi/js";
+import { mdiBookOpenVariant, mdiVectorDifference, mdiTrayArrowDown, mdiTrayArrowUp, mdiSwapHorizontal } from "@mdi/js";
 import type { ClientSDK } from "@sitecore-marketplace-sdk/client";
 import { TransferMode } from "@/src/components/content-transfer/TransferMode";
 import type { EnvironmentOption } from "@/src/models/contentTransfer";
 import { DownloadPackageMode } from "@/src/components/content-transfer/DownloadPackageMode";
 import { InstallPackageMode } from "@/src/components/content-transfer/InstallPackageMode";
 import { KnownIssuesMode } from "@/src/components/known-issues/KnownIssuesMode";
+import { ContentDiffMode } from "@/src/components/content-diff/ContentDiffMode";
 
 // Everything a feature may use. Features get the shared client and environment list from the
 // page; they must not create their own client.
@@ -28,5 +29,6 @@ export const FEATURES: FeatureDefinition[] = [
   { id: "transfer", label: "Transfer", icon: mdiSwapHorizontal, component: TransferMode },
   { id: "download-package", label: "Package designer", icon: mdiTrayArrowDown, component: DownloadPackageMode },
   { id: "install-package", label: "Install package", icon: mdiTrayArrowUp, component: InstallPackageMode },
+  { id: "compare-environments", label: "Compare environments", icon: mdiVectorDifference, component: ContentDiffMode },
   { id: "known-issues", label: "Known issues", icon: mdiBookOpenVariant, component: KnownIssuesMode },
 ];

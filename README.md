@@ -13,9 +13,28 @@ The app includes the following key features:
 - **Transfer:** copy selected items straight from a source environment to a destination.
 - **Package designer:** export selected items from a source environment into a single `.zip` file.
 - **Install package:** load a `.zip` made by Package designer and install it into a destination environment.
+- **Compare environments:** see the content tree and field values of two environments side by side, in one language, and spot what is missing or different.
 - **Known issues:** a list of problems seen during development and how they were resolved.
 
 You browse the source environment's content tree, tick the items you want, and choose how each one should be merged into the destination (for example, override or keep the existing item).
+
+## Compare Environments
+
+Compare environments shows the items under `/sitecore` in a source environment and a target environment, side by side. Use it to check what differs before you transfer. Nothing is written to either environment.
+
+1. **Language:** choose the language to compare. English is always available. To add another, click **Manage languages**, then enter a label (for example `German`) and its code (for example `de-de`). The list is saved in your browser.
+2. **Source and Target:** choose the two environments. They must be different.
+3. **Expand items** to compare their children. Each row shows the source on the left and the target on the right. A grey dashed box means the item is not in that environment.
+
+Markers:
+
+- **Green:** the item is identical in both environments.
+- **Red:** the field values differ, or could not be read. Click the item's name to see the differing fields.
+- **Orange:** the item exists in only one environment, or has no version in the chosen language (shown as `(0 versions)`).
+
+Click **Refresh** on an item to reload it from both environments. Everything below it collapses, so you see its current children. Turn on **Show grid lines** to see row and column boundaries.
+
+Changing the environment or the language starts a new comparison.
 
 ## Getting Started
 
@@ -61,6 +80,7 @@ Without these, the app cannot read environments or download packages. For detail
 4. **Browsing:** the source tree loads children only when a node is expanded, and pages through large folders on request.
 5. **Transfer and package operations:** `src/lib/contentTransfer.ts` runs the content transfer steps against the SitecoreAI APIs, and reports progress for each step. Failures name the step that broke, and the source transfer is cleaned up in every case.
 6. **Packages:** `src/lib/contentPackage.ts` builds and validates the zip file. The package records the items, their chunks and the chunk metadata that Install needs.
+7. **Compare:** `src/utils/hooks/useContentDiff.ts` loads the two trees one node at a time, and `src/lib/contentDiff.ts` labels each item. The language list is kept in the browser (`src/utils/hooks/useCompareLanguages.ts`). The compare feature is documented in CLAUDE.md.
 
 For the step-by-step API flow and the package format, see [docs/content-transfer-flow.md](docs/content-transfer-flow.md).
 

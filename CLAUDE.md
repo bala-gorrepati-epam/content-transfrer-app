@@ -3,7 +3,7 @@ Next.js 16.1 (App Router, TypeScript strict) SitecoreAI Marketplace standalone a
 Purpose: copy content items from one SitecoreAI environment to another.
 - App URL in registration: `/content-transfer`
 - Entry point: `src/app/content-transfer/page.tsx`
-- The page renders the app shell (`src/components/layout/AppShell.tsx`): a sidebar lists the features from `src/features/registry.ts` (Transfer, Download package, Install package, Known issues).
+- The page renders the app shell (`src/components/layout/AppShell.tsx`): a sidebar lists the features from `src/features/registry.ts` (Transfer,  Package designer, Install package, Compare environments, Known issues).
 
 # SDK Usage
 - For content transfer operations (createContentTransfer to deleteContentTransfer), use the `content-transfer-sdk` skill before writing the call. Keep the skill up to date when the SDK behaviour changes.
@@ -21,7 +21,7 @@ Three modes in /content-transfer:
 1. Transfer: pick source + destination (must differ; label environments by name, never by context ID)
     -> browse the source tree (see Source tree browsing below) -> multi-select items
     -> set Scope and MergeStrategy per item -> run transfer -> show per-step progress.
-2. Download package: same selection as Transfer, source only -> export, bundle as .zip, download.
+2. Package designer: same selection as Transfer, source only -> export, bundle as .zip, download.
 3. Install package: upload our .zip, pick destination, confirm, install. The destination may be the environment the package came from.
 
 ## Source tree browsing
@@ -54,6 +54,72 @@ Selection:
 - Avoid overlapping dataTrees: if an item is selected with `ItemAndDescendants`, its descendants are already covered. Show them as covered, and drop any separate selections of them.
 - The selected list shows each item's path, scope and mergeStrategy, and these become the `dataTrees` of `createContentTransfer`.
 
+# Feature: compare environments
+Read-only. Compares the items under `/sitecore` in a source and a target environment, in one language, side by
+side. Nothing is written to either environment. Feature id `compare-environments`, registered after Transfer.
+Component: `src/components/content-diff/ContentDiffMode.tsx`.
+
+Layout (same as the other tabs): Clear on the top line (right); Language dropdown and "Manage languages" link on
+the second line (right); Source and Target dropdowns on the third line; then the Items card (with the "Show grid
+lines" checkbox in its header, a legend and the aligned tree) and the Field differences card.
+
+Data:
+- One request per page per side: `GET_ITEMS_WITH_FIELDS` (`src/utils/graphqlQueries.ts`), with `$path`, `$after`
+  and `$language`. Each page returns the item, its own fields and each child with `version` and `fields`. There is
+  no separate field request.
+- `ListAllChildren` (`src/lib/listAllChildren.ts`) follows every page. This is a deliberate exception to the
+  source-tree rule "do not auto-load all pages": pairing children by path needs the full list on both sides.
+  Expanding a node loads all of its children.
+- A side where the item does not exist is not queried (`sidesOf` in `useContentDiff`). The root always queries both
+  sides, because its existence is not known until it loads.
+- Field errors carry a path. `["item","fields"]` marks the item itself and `["item","children","nodes",<i>,"fields"]`
+  marks child `i`. Those items become `unreadable` ("Fields unavailable"), and the rest of the tree loads. Any other
+  error, or a child that comes back null, fails the node, which shows Retry.
+- `version` 0 means the item has no version in the chosen language. Its fields are empty, which is not an error.
+
+Status (`diffStatus` in `src/lib/contentDiff.ts`):
+- identical: on both sides with the same field values. A missing field is not the same as an empty value.
+- modified: on both sides, at least one value differs.
+- unreadable: on both sides, but fields could not be read on at least one side.
+- sourceOnly / targetOnly: exists on one side. Also used when one side has 0 versions in the language: the side with
+  versions is the only one that exists there, and the other side shows "(0 versions)" with no marker.
+- Both sides with 0 versions: identical.
+- Markers: green identical; red modified or unreadable; orange exists in one environment only.
+- Clicking a red item's name opens its differing fields (`FieldDiffPanel`). Values are cut at 500 characters for
+  display only.
+
+Tree (`useContentDiff`, `DiffTree`):
+- The root `/sitecore` loads when the comparison starts. A loader shows until it answers.
+- Children load on the first expand and are cached. Collapse and expand do not refetch.
+- Refresh (icon on loaded, expandable rows, on the item's own side): reloads that node's item and children, collapses
+  everything below it and drops their cached children, so they load again when expanded. The refreshed node stays
+  open. Retry on an error row uses the same function.
+- Stale responses are ignored: `epoch` changes on environment or language change, and each node's `requestId`
+  changes on every load. A refresh also replaces the `requestId` of the nodes it collapses.
+- Rows are aligned: one row per path, source on the left, target on the right. A missing side shows "Not in {env}".
+  "Show grid lines" adds row and column dividers and dashed placeholders for the missing side.
+- The summary line counts only the items loaded so far.
+
+Languages (`useCompareLanguages`, `src/lib/compareLanguages.ts`):
+- English is constant (`ENGLISH_LANGUAGE`, label "English") and cannot be removed.
+- Other languages are managed in the "Manage languages" dialog. Each has a `code` (sent to the API, validated, for
+  example `de-de`) and a `label` (shown in the UI, for example "German", up to 40 characters). Codes are compared
+  without regard to case.
+- Stored per browser in localStorage under `content-diff-languages` as `{ code, label }` objects. The old format
+  (plain codes) still loads. When nothing is stored yet, the list is German (`de-de`). If storage is blocked, the
+  default list is used and changes are not kept after a reload.
+- Changing the language resets the comparison, because cached field values belong to the old language. Removing the
+  selected language falls back to English.
+- Known limit: the list is not read from Sitecore, so it is not shared between users or devices.
+
+Other limits:
+- Refresh does not re-check a side that a node was known to be missing on. Refresh the parent to pick up an item
+  that was created there.
+- `ownFields` is not passed to `GET_ITEMS_WITH_FIELDS` (a deliberate change by the developer), so inherited template
+  fields may be compared as well as the item's own fields.
+- No automated tests yet. Pure functions (`diffStatus`, `pairChildren`, language parsing) were checked with scratch
+  scripts only.
+
 # Tech stack (versions in package.json)
 - Next 16.1.1 (Turbopack), React 19.1.1, TypeScript 5.9.2 (strict).
 - Node: v26.13.0 LTS, installed via winget. Earlier it was v22.2.0, which could not load Tailwind's ESM-only `magic-string`. Do not add an npm override for this.
@@ -72,17 +138,23 @@ Selection:
 - `src/features/registry.ts`: the feature list (`FEATURES`: id, label, Blok icon path, component). Add a feature by writing its component and adding one entry. Sidebar order follows the array. Features receive `{ client, environments }`.
 - `src/components/layout/AppShell.tsx`: app layout. Left sidebar with the brand (`public/logo.png`, shown with `next/image`, vertically centred with the title) and a "Navigate" list. Top bar with a sidebar toggle, a breadcrumb and the theme switch. Content has 10% side margin on md+ screens (16px on phones). Only the active feature is mounted, so switching starts it fresh. Navigation locks while a feature reports a run (`FeatureBusyContext` and `useReportBusy` in `src/features/busy.ts`). Each feature has its own Clear button, disabled while running.
 - `src/components/theme/ThemeToggle.tsx`: light/dark toggle. Reads the `dark` class on `<html>` through `useSyncExternalStore`. The choice is stored in localStorage under the key in `src/lib/theme.ts`. An inline script in `src/app/layout.tsx` applies it before first paint.
-- `src/components/content-transfer/`: `TransferMode` (Transfer), `DownloadPackageMode` (Download package), `InstallPackageMode` (Install package), `EnvironmentSelect`, `SourceTree`, `TreeNode`, `SelectionPanel`, `TransferProgressView`.
+- `src/components/content-transfer/`: `TransferMode` (Transfer), `DownloadPackageMode` (Package designer), `InstallPackageMode` (Install package), `EnvironmentSelect`, `SourceTree`, `TreeNode`, `SelectionPanel`, `TransferProgressView`.
 - `src/components/known-issues/KnownIssuesMode.tsx`: accordion over `KNOWN_ISSUES` in `src/models/knownIssues.ts`. Add new issues there.
 - `src/lib/getItems.ts`: `GetItems(client, sourceContextId, path, after?)`, wraps `xmc.authoring.graphql`.
 - `src/lib/contentTransfer.ts`: `runTransfer(...)` (steps 1 to 8), `runDownloadPackage(...)` (steps 1 to 3, write the zip, cleanup) and `runInstallPackage(...)` (steps 4 to 7 with a new transferId). Shared helpers: `runSteps` (source runs, attributes failures to a step, always cleans up) and `importOnDestination` (steps 5 to 7, used by Transfer and Install).
 - `src/lib/contentPackage.ts`: `PackageZipWriter` (fflate, writes entries to a `PackageSink`), `createMemorySink` (Download), `readPackage` (validates an uploaded package for Install). Package format and delivery are in `docs/content-transfer-flow.md`.
 - `src/lib/icon.tsx`: `Icon` (MDI path renderer). `src/lib/theme.ts`: theme storage key and the init script.
-- `src/utils/hooks/useSourceBrowser.ts`: source environment choice, tree and selection, shared by Transfer and Download package.
+- `src/utils/hooks/useSourceBrowser.ts`: source environment choice, tree and selection, shared by Transfer and Package designer.
 - `src/utils/hooks/useSourceTree.ts`: lazy tree, pagination, per-node error and retry, stale-response guard using `epoch` and per-node `requestId`.
 - `src/utils/hooks/useTreeSelection.ts`: selections keyed by path, Scope and MergeStrategy, covered-item rules.
 - `src/utils/hooks/useMarketplaceClient.ts`: the only place the client is created. Retries use a loop.
-- `src/utils/graphqlQueries.ts`: `GET_ITEMS` (the query file stays here, not in a `queries/` folder).
+- `src/utils/graphqlQueries.ts`: `GET_ITEMS` (Transfer tree) and `GET_ITEMS_WITH_FIELDS` (Compare environments). The query file stays here, not in a `queries/` folder.
+- Compare environments:
+  - `src/components/content-diff/`: `ContentDiffMode` (the feature), `DiffTree` (aligned rows, markers, refresh, grid lines), `FieldDiffPanel` (differing fields of a selected item), `ManageLanguagesDialog`.
+  - `src/utils/hooks/useContentDiff.ts`: the comparison tree (lazy load, sides queried, refresh, `epoch` and `requestId` guards).
+  - `src/utils/hooks/useCompareLanguages.ts`: the language list (English plus the user's list), with add and remove.
+  - `src/lib/listAllChildren.ts`: `ListAllChildren` (all pages, field errors mapped to items, version 0). `src/lib/contentDiff.ts`: `diffStatus`, `differingFields`, `valuesOf`, `pairChildren`. `src/lib/compareLanguages.ts`: language storage and validation.
+  - `src/models/contentDiff.ts`: `SideItem`, `FieldsLoad`, `DiffStatus`, `LanguageOption`, `ENGLISH_LANGUAGE`.
 - `src/models/`: `getItems.ts` (`Item`, `ItemNode`, `PageInfo`), `contentTransfer.ts` (`SelectedItem`, `DataTree`, step types, `EnvironmentOption`, `BlobStateResponse`, option labels), `contentPackage.ts` (manifest types), `knownIssues.ts`.
 - `docs/content-transfer-flow.md`: the flow and rules.
 - `.claude/skills/content-transfer-sdk/`: operation reference. Read it before writing any content-transfer SDK call.
@@ -104,12 +176,12 @@ Selection:
 - `consumeFile`: `fileName` must have the `blob://` prefix. `getBlobState`: `fileName` must not have it.
 - `getBlobState` real response (PascalCase): `{ BlobState: "Consumed", Error: null, ConsumedName, Actions: { Details } }`. Done when `BlobState === "Consumed"`. A non-null `Error` fails the run. The installed types declare `status`/`details`, which does not match the real API. The code types it as `BlobStateResponse`.
 - `xmc.authoring.graphql` response: `data.item` (with `children.nodes` and `pageInfo`) is the `Item` type.
+- Compare environments uses `GET_ITEMS_WITH_FIELDS`: `item(where: { path, database: "master", language: $language })`, with `version`, and `fields(excludeStandardFields: true)` on the item and on each child. The item lookup takes no `version` argument.
+- Field-level GraphQL errors come back in `errors` with a `path`: `["item","fields"]` for the item, `["item","children","nodes",<i>,"fields"]` for child `i`. `ListAllChildren` maps these to one item. Any other error path fails the whole node.
+- An item with no version in the requested language returns `version: 0` and no field values.
+- Field-level errors and the template-missing case were observed during development. The message is shown to the user as the item's "Fields unavailable" reason.
 
 # Not built yet
-- Download package is built (`DownloadPackageMode`). It produces the zip described in `docs/content-transfer-flow.md`.
-- Install package is built (`InstallPackageMode`). It validates the uploaded zip, shows its contents, and imports it into the chosen destination after confirmation. Source and destination may be the same environment. The user reported it working.
-- The save dialog for Download was removed. The Marketplace iframe blocks file pickers. Do not reintroduce it without checking the host permission first. Download is in-memory only.
-- Download in the Marketplace iframe needs the host to allow downloads (`allow-downloads` in the iframe sandbox). Ask the host team if a download is blocked.
 - No tests yet.
 
 # Working agreements
