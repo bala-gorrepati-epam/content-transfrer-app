@@ -2,7 +2,7 @@
   "name": "xmcloud-extension-starter",
   "version": "1.0.0",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --experimental-https --hostname myscmarketplaceapp.local",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -22,6 +22,7 @@
     "@radix-ui/react-slot": "^1.5.0",
     "@sitecore-marketplace-sdk/client": "^0.3.6",
     "@sitecore-marketplace-sdk/xmc": "^0.4.2",
+    "@auth0/auth0-react": "^2.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cn": "^0.5.2",

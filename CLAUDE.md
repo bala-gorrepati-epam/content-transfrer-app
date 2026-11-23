@@ -12,7 +12,23 @@ Purpose: copy content items from one SitecoreAI environment to another.
   `appContext.resourceAccess[]` lists the environments the app can access.
   Use `resourceAccess[i].context.preview` as the context ID for xmc calls.
   Use `appContext.resourceAccess[i].tenantDisplayName` as the display name for environment
-- Authentication is handled by the client. Call `client.mutate("<operation>", params)` for mutations and `client.query("<operation>", params)` for queries. Which operations are queries is listed under "SDK facts" below. Do not add your own auth.
+- Authentication is handled by the client. Call `client.mutate("<operation>", params)` for mutations and `client.query("<operation>", params)` for queries. Which operations are queries is listed under "SDK facts" below. Do not add your own auth, except the item-tree reads described under "Custom auth for item reads" below.
+
+# Custom auth for item reads
+Follows https://izharikov.dev/blogs/sitecore-marketplace-app-custom-authorization-setup.
+- Scope: only the item-tree reads (`GetItems`, used by Transfer and Package designer). Other SDK calls (including Compare environments' `client.mutate` reads and all content transfer operations) still use the SDK's own auth.
+- Flow: `CustomAuthProvider` (mounted in `page.tsx` once the application context is loaded) wraps the Auth0 provider. `useAccessToken()` calls `getAccessTokenSilently` with `organization_id` and `tenant_id`. `GetItems` sends the token as `Authorization: Bearer` to `/api/authoring/graphql`, which calls `experimental_createXMCClient({ getAccessToken })`.
+- Environment variables (set in the hosting environment; the repo has no `.env` values to commit): `NEXT_PUBLIC_AUTH0_DOMAIN`, `NEXT_PUBLIC_AUTH0_CLIENT_ID`, `NEXT_PUBLIC_AUTH0_AUDIENCE`, `NEXT_PUBLIC_AUTH0_SCOPE`, `NEXT_PUBLIC_SITECORE_APP_ID`, `NEXT_PUBLIC_APP_BASE_URL`. If one is missing, the app shows "Authentication is not configured" instead of the features.
+- Auth0 needs `NEXT_PUBLIC_APP_BASE_URL` to match a registered callback URL. Login returns to the root URL, which redirects to the original path.
+- The route accepts only the `GET_ITEMS` query text, so it cannot run arbitrary GraphQL. Tokens and context IDs are not logged. Errors from the authoring API are returned as a generic message.
+- Not verified against a live tenant yet: the build passes, but a sign-in and a tree load have to be checked in the Marketplace iframe.
+
+# Environment access (who sees which environment)
+- Roles come from `client.query("host.user")`, under the claim `https://auth.sitecorecloud.io/claims/roles`. `src/app/content-transfer/page.tsx` reads them and filters `environments` before any feature gets them, so every dropdown (source, target, destination) follows the same rule.
+- `[Organization]\Organization Admin` or `[Organization]\Organization Owner`: all environments in `application.context.resourceAccess`.
+- Anyone else: only environments whose `tenantId` has the role `<tenantId>\[XMCloud]\User` or `<tenantId>\[XMCloud]\Advance User`. Checks live in `src/lib/access.ts`.
+- If the roles cannot be loaded, the app shows an error and no environments (it fails closed). If the user has no matching environment, a message is shown instead of the app.
+- Role strings are compared after every run of backslashes is reduced to one. The platform sends two backslashes between the parts (for example `<tenantId>\\[XMCloud]\\User`), and single-backslash roles also match. If the role names change, update `src/lib/access.ts`.
 
 # Feature: content transfer
 Full flow and rules: @docs/content-transfer-flow.md
@@ -26,7 +42,7 @@ Three modes in /content-transfer:
 
 ## Source tree browsing
 Items are fetched with the `GetItems` function in `src/lib/getItems.ts`. It calls
-`client.mutate("xmc.authoring.graphql", ...)` with the `GET_ITEMS` query and variables
+`POST /api/authoring/graphql` with the user's access token (see "Custom auth for item reads"), which runs the `GET_ITEMS` query and variables
 `path` and optional `after`, and returns the item at `path` plus its children.
 
 - `GetItems` takes the context ID of the selected SOURCE environment as a parameter.
@@ -140,7 +156,10 @@ Other limits:
 - `src/components/theme/ThemeToggle.tsx`: light/dark toggle. Reads the `dark` class on `<html>` through `useSyncExternalStore`. The choice is stored in localStorage under the key in `src/lib/theme.ts`. An inline script in `src/app/layout.tsx` applies it before first paint.
 - `src/components/content-transfer/`: `TransferMode` (Transfer), `DownloadPackageMode` (Package designer), `InstallPackageMode` (Install package), `EnvironmentSelect`, `SourceTree`, `TreeNode`, `SelectionPanel`, `TransferProgressView`.
 - `src/components/known-issues/KnownIssuesMode.tsx`: accordion over `KNOWN_ISSUES` in `src/models/knownIssues.ts`. Add new issues there.
-- `src/lib/getItems.ts`: `GetItems(client, sourceContextId, path, after?)`, wraps `xmc.authoring.graphql`.
+- `src/lib/getItems.ts`: `GetItems(getAccessToken, sourceContextId, path, after?)`. Sends `GET_ITEMS` to our route with a Bearer token.
+- `src/app/api/authoring/graphql/route.ts`: server route. Reads the Bearer token, creates `experimental_createXMCClient`, runs `xmc.authoring.graphql`. Accepts only `GET_ITEMS`.
+- `src/app/page.tsx`: root page. Sends the user back to `?redirect=<path>` after Auth0 login. Local paths only.
+- `src/components/auth/CustomAuthProvider.tsx`: Auth0 provider and token getter. `src/utils/hooks/useAccessToken.ts`: context and `useAccessToken()`.
 - `src/lib/contentTransfer.ts`: `runTransfer(...)` (steps 1 to 8), `runDownloadPackage(...)` (steps 1 to 3, write the zip, cleanup) and `runInstallPackage(...)` (steps 4 to 7 with a new transferId). Shared helpers: `runSteps` (source runs, attributes failures to a step, always cleans up) and `importOnDestination` (steps 5 to 7, used by Transfer and Install).
 - `src/lib/contentPackage.ts`: `PackageZipWriter` (fflate, writes entries to a `PackageSink`), `createMemorySink` (Download), `readPackage` (validates an uploaded package for Install). Package format and delivery are in `docs/content-transfer-flow.md`.
 - `src/lib/icon.tsx`: `Icon` (MDI path renderer). `src/lib/theme.ts`: theme storage key and the init script.

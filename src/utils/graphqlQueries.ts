@@ -1,16 +1,33 @@
 export const GET_ITEMS = `
   query GetItemChildren($path: String!, $after: String) {
+    currentUser {
+       name
+       profile {
+         fullName
+         isAdministrator
+       }
+    }
     item(where: { path: $path, database: "master" }) {
       itemId
       name
       path
       hasChildren
+      access {
+        canRead
+        canCreate
+        canWrite
+      }
       children(first: 100, after: $after) {
         nodes {
           itemId
           name
           path
           hasChildren
+          access {
+            canRead
+            canCreate
+            canWrite
+          }
         }
         pageInfo {
           hasNextPage
