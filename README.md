@@ -56,12 +56,30 @@ The app can also be hosted on [Vercel](https://vercel.com) (or any other Next.js
 
 ### Register the app
 
-Register the app in SitecoreAI as a standalone extension, pointing at the `/content-transfer` route. During registration, grant these permissions:
+Register the app in SitecoreAI as a standalone extension. The app has two routes, and each one is registered as its own app URL. Pick the one that matches how your team works (see [Routes](#routes)). During registration, grant these permissions:
 
 - **API Access:** SitecoreAI APIs.
-- **Permissions:** Download files.
+- **Permissions:** Allow Popups, Download files.
 
 Without these, the app cannot read environments or download packages. For details, see the [Sitecore Marketplace documentation](https://doc.sitecore.com/mp/en/developers/marketplace/introduction-to-sitecore-marketplace.html).
+
+### Routes
+
+| Route                         | Use it for                                                                                                                                                                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/content-transfer`           | The normal app. It lists every environment the Marketplace gives the app. No extra setup. Destination checks are not run, because there is no sign-in token.                                                                                                       |
+| `/content-transfer-with-rbac` | Role-based access. Environments are filtered by each user's roles. Organization admins and owners see everything. Other users sign in through Auth0, and their item reads and destination checks go through the custom auth route. Needs the Auth0 settings below. |
+
+The RBAC route needs these environment variables. Set them in your hosting environment (for example Vercel). For local development, put them in a `.env` file in the project root. That file is git-ignored, so it is not committed. Use the values from your Auth0 and Sitecore setup:
+
+- `NEXT_PUBLIC_AUTH0_DOMAIN`
+- `NEXT_PUBLIC_AUTH0_CLIENT_ID`
+- `NEXT_PUBLIC_AUTH0_AUDIENCE`
+- `NEXT_PUBLIC_AUTH0_SCOPE`
+- `NEXT_PUBLIC_SITECORE_APP_ID`
+- `NEXT_PUBLIC_APP_BASE_URL`: must match a callback URL registered in Auth0.
+
+If one of these is missing, the RBAC route shows "Authentication is not configured". The normal route does not use them.
 
 ### Useful commands
 
@@ -74,7 +92,7 @@ Without these, the app cannot read environments or download packages. For detail
 
 ## Code Flow
 
-1. **Entry point:** `src/app/content-transfer/page.tsx` gets the Marketplace client and the list of environments the app can access. It shows a loading state until both are ready.
+1. **Entry points:** `src/app/content-transfer/page.tsx` (normal route) and `src/app/content-transfer-with-rbac/page.tsx` (RBAC route) get the Marketplace client and the list of environments the app can access. The RBAC page also reads the user's roles and filters that list. Both show a loading state until they are ready.
 2. **Layout:** `AppShell` draws the sidebar, top bar and content area. The sidebar lists the features defined in `src/features/registry.ts`.
 3. **Features:** each feature is a component that receives the client and environment list. Only the active feature is shown, and navigation is locked while a run is in progress.
 4. **Browsing:** the source tree loads children only when a node is expanded, and pages through large folders on request.
