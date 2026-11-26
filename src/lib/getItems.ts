@@ -1,3 +1,4 @@
+import type { ClientSDK } from "@sitecore-marketplace-sdk/client";
 import type { GetAccessToken } from "@/src/utils/hooks/useAccessToken";
 import { GET_ITEMS } from "@/src/utils/graphqlQueries";
 import type { Item } from "@/src/models/getItems";
@@ -10,36 +11,54 @@ interface GraphqlBody {
 
 // Returns the item at `path` with its children (max 100 per call).
 // `after` is the endCursor of the previous page; omit it for the first page.
-// The request goes to our own route with the user's access token (custom Auth0 setup, see CLAUDE.md).
-// The route runs the same GET_ITEMS query against the source environment.
+// With a token (custom Auth0 setup, see CLAUDE.md) the request goes to our route. Without one (organization admins
+// and owners) it goes through the SDK, as before custom auth. Both run the same GET_ITEMS query.
 export async function GetItems(
-  getAccessToken: GetAccessToken,
+  client: ClientSDK,
+  getAccessToken: GetAccessToken | null,
   sourceContextId: string,
   path: string,
   after?: string,
 ): Promise<Item> {
-  const accessToken = await getAccessToken();
+  const variables = {
+    path: path,
+    ...(after && { after: after }),
+  };
 
-  const response = await fetch("/api/authoring/graphql", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      sitecoreContextId: sourceContextId,
-      query: GET_ITEMS,
-      variables: {
-        path: path,
-        ...(after && { after: after }),
+  let responseBody: GraphqlBody & { error?: string };
+  if (getAccessToken) {
+    const accessToken = await getAccessToken();
+    const response = await fetch("/api/authoring/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-    }),
-  });
+      body: JSON.stringify({ sitecoreContextId: sourceContextId, query: GET_ITEMS, variables }),
+    });
+    responseBody = (await response.json().catch(() => ({}))) as GraphqlBody & { error?: string };
+    if (!response.ok) {
+      throw new Error(responseBody.error ?? "Retrieving of items failed");
+    }
+  } else {
+    const getItemsResponse = await client.mutate("xmc.authoring.graphql", {
+      params: {
+        query: {
+          sitecoreContextId: sourceContextId,
+        },
+        body: {
+          query: GET_ITEMS,
+          variables,
+        },
+      },
+    });
 
-  const responseBody = (await response.json().catch(() => ({}))) as GraphqlBody & { error?: string };
+    if ("error" in getItemsResponse && getItemsResponse.error)
+      throw new Error(
+        "string" == typeof getItemsResponse.error ? getItemsResponse.error : "Retrieving of items failed",
+      );
 
-  if (!response.ok) {
-    throw new Error(responseBody.error ?? "Retrieving of items failed");
+    responseBody = (getItemsResponse?.data ?? {}) as GraphqlBody;
   }
 
   if (responseBody.errors?.length) {

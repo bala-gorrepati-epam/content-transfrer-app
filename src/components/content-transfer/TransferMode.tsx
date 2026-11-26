@@ -28,7 +28,7 @@ import {
   type EnvironmentOption,
   type TransferProgress,
 } from "@/src/models/contentTransfer";
-import { LoadingSpinner } from "@/src/components/ui/loading-spinner";
+import { PermissionCheckOverlay } from "@/src/components/content-transfer/PermissionCheckOverlay";
 import { useSourceBrowser } from "@/src/utils/hooks/useSourceBrowser";
 import { useAccessToken } from "@/src/utils/hooks/useAccessToken";
 import { useReportBusy } from "@/src/features/busy";
@@ -96,8 +96,11 @@ export function TransferMode({ client, environments }: TransferModeProps) {
     try {
       // Check the destination before anything is read from the source or written to it.
       setCheckingPermissions(true);
-      const problems = await checkDestinationPermissions(getAccessToken, destination.contextId, dataTrees);
-      //setCheckingPermissions(false);
+      // Organization admins and owners have no token and skip this check: Sitecore already gives them full rights.
+      const problems = getAccessToken
+        ? await checkDestinationPermissions(getAccessToken, destination.contextId, dataTrees)
+        : [];
+      setCheckingPermissions(false);
       if (problems.length > 0) {
         setProgress(initialProgress());
         setOutcome({
@@ -187,15 +190,7 @@ export function TransferMode({ client, environments }: TransferModeProps) {
         </section>
       </div>
 
-      {checkingPermissions && (
-        // Full-screen overlay: the page is dimmed and clicks are blocked until the check finishes.
-        <div aria-busy="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-6 shadow-lg">
-            <LoadingSpinner label="Checking destination permissions" className="size-6" />
-            <span className="text-sm">Checking the rights needed in {destination?.name}…</span>
-          </div>
-        </div>
-      )}
+      {checkingPermissions && <PermissionCheckOverlay destinationName={destination?.name} />}
 
       {progress && !checkingPermissions && (
         <div ref={progressRef} className="scroll-mt-6">

@@ -166,7 +166,7 @@ export function useSourceTree(client: ClientSDK | null, sourceContextId: string 
       const requestId = ++requestCounter.current;
       dispatch({ type: "loadStart", epoch, path, requestId });
       try {
-        const result = await GetItems(getAccessToken, sourceContextId, path, after);
+        const result = await GetItems(client, getAccessToken, sourceContextId, path, after);
         if (!result?.item) throw new Error("No item exists at this path in the source environment.");
         dispatch({ type: "loadSuccess", epoch, path, requestId, result, append: Boolean(after) });
       } catch (e) {

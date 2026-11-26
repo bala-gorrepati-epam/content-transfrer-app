@@ -80,16 +80,23 @@ function ContentTransfer() {
     );
   }
 
-  // The custom auth provider gives features an access token for the item tree requests. It is scoped to the
-  // organization and tenant from the application context.
+  const shell = (
+    <AppShell
+      title="Content Transfer App"
+      subtitle="SitecoreAI to SitecoreAI"
+      features={FEATURES}
+      featureProps={{ client, environments }}
+    />
+  );
+
+  // Organization admins and owners do not need custom auth, so no sign-in and no token requests are made for them.
+  // Everyone else gets the custom auth provider, which gives features an access token scoped to the organization
+  // and tenant from the application context.
+  if (hasFullAccess(roles)) return shell;
+
   return (
     <CustomAuthProvider organizationId={appContext.organizationId} tenantId={appContext.marketplaceAppTenantId}>
-      <AppShell
-        title="Content Transfer App"
-        subtitle="SitecoreAI to SitecoreAI"
-        features={FEATURES}
-        featureProps={{ client, environments }}
-      />
+      {shell}
     </CustomAuthProvider>
   );
 }

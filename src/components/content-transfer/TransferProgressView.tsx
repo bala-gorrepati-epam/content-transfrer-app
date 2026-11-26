@@ -75,28 +75,30 @@ export function TransferProgressView({ progress, outcome, steps = STEP_IDS }: Tr
     <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-sm">
       <h2 className="text-lg font-semibold">Progress</h2>
 
-      {(!outcome || outcome?.kind != "failure") && <ol className="flex flex-col gap-2">
-        {steps.map((id) => {
-          // Defensive: a step with no entry shows as pending instead of crashing the panel.
-          const step: TransferStepState = progress[id] ?? { status: "pending" };
-          return (
-            <li key={id} className="flex items-start gap-3">
-              <span className="mt-0.5">
-                <StepIcon status={step.status} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium">{STEP_LABELS[id]}</p>
-                {step.detail && <p className="text-xs text-muted-foreground">{step.detail}</p>}
-                {step.error && (
-                  <p className="text-xs text-destructive" role="alert">
-                    {step.error}
-                  </p>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ol>}
+      {(!outcome || outcome?.kind != "failure") && (
+        <ol className="flex flex-col gap-2">
+          {steps.map((id) => {
+            // Defensive: a step with no entry shows as pending instead of crashing the panel.
+            const step: TransferStepState = progress[id] ?? { status: "pending" };
+            return (
+              <li key={id} className="flex items-start gap-3">
+                <span className="mt-0.5">
+                  <StepIcon status={step.status} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{STEP_LABELS[id]}</p>
+                  {step.detail && <p className="text-xs text-muted-foreground">{step.detail}</p>}
+                  {step.error && (
+                    <p className="text-xs text-destructive" role="alert">
+                      {step.error}
+                    </p>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
       {outcome && (
         <Alert variant={outcome.kind === "failure" ? "danger" : "default"}>

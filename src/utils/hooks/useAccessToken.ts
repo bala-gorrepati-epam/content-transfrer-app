@@ -5,12 +5,11 @@ import { createContext, useContext } from "react";
 // Returns an access token for the signed-in user, scoped to the organization and tenant.
 export type GetAccessToken = () => Promise<string>;
 
-// Provided by CustomAuthProvider (src/components/auth/CustomAuthProvider.tsx). Null outside that provider.
+// Provided by CustomAuthProvider (src/components/auth/CustomAuthProvider.tsx). Null when no custom auth is set up:
+// organization admins and owners do not use it, so their item reads go through the SDK.
 export const AccessTokenContext = createContext<GetAccessToken | null>(null);
 
-// Use inside CustomAuthProvider only. Calls outside it fail loudly rather than sending requests without a token.
-export function useAccessToken(): GetAccessToken {
-  const getAccessToken = useContext(AccessTokenContext);
-  if (!getAccessToken) throw new Error("useAccessToken must be used inside CustomAuthProvider.");
-  return getAccessToken;
+// The token getter, or null when custom auth is not in use. Callers that need a token must handle null.
+export function useAccessToken(): GetAccessToken | null {
+  return useContext(AccessTokenContext);
 }
