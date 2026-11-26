@@ -39,6 +39,8 @@ export function initialProgress(): TransferProgress {
 export interface TransferOutcome {
   kind: "success" | "failure";
   message: string;
+  // Optional list shown under the message, one line per entry. Plain text only, so no markup is needed.
+  details?: string[];
 }
 
 function StepIcon({ status }: { status: TransferStepState["status"] }) {
@@ -73,33 +75,44 @@ export function TransferProgressView({ progress, outcome, steps = STEP_IDS }: Tr
     <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-sm">
       <h2 className="text-lg font-semibold">Progress</h2>
 
-      <ol className="flex flex-col gap-2">
-        {steps.map((id) => {
-          // Defensive: a step with no entry shows as pending instead of crashing the panel.
-          const step: TransferStepState = progress[id] ?? { status: "pending" };
-          return (
-            <li key={id} className="flex items-start gap-3">
-              <span className="mt-0.5">
-                <StepIcon status={step.status} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium">{STEP_LABELS[id]}</p>
-                {step.detail && <p className="text-xs text-muted-foreground">{step.detail}</p>}
-                {step.error && (
-                  <p className="text-xs text-destructive" role="alert">
-                    {step.error}
-                  </p>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      {(!outcome || outcome?.kind != "failure") && (
+        <ol className="flex flex-col gap-2">
+          {steps.map((id) => {
+            // Defensive: a step with no entry shows as pending instead of crashing the panel.
+            const step: TransferStepState = progress[id] ?? { status: "pending" };
+            return (
+              <li key={id} className="flex items-start gap-3">
+                <span className="mt-0.5">
+                  <StepIcon status={step.status} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{STEP_LABELS[id]}</p>
+                  {step.detail && <p className="text-xs text-muted-foreground">{step.detail}</p>}
+                  {step.error && (
+                    <p className="text-xs text-destructive" role="alert">
+                      {step.error}
+                    </p>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
       {outcome && (
         <Alert variant={outcome.kind === "failure" ? "danger" : "default"}>
           <AlertTitle>{outcome.kind === "failure" ? "Transfer failed" : "Transfer finished"}</AlertTitle>
-          <AlertDescription>{outcome.message}</AlertDescription>
+          <AlertDescription>
+            {outcome.message && <p>{outcome.message}</p>}
+            {outcome.details && outcome.details.length > 0 && (
+              <ol className="list-decimal space-y-1 pl-5">
+                {outcome.details.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ol>
+            )}
+          </AlertDescription>
         </Alert>
       )}
     </section>

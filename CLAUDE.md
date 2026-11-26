@@ -1,9 +1,15 @@
 # Project
 Next.js 16.1 (App Router, TypeScript strict) SitecoreAI Marketplace standalone app.
 Purpose: copy content items from one SitecoreAI environment to another.
-- App URL in registration: `/content-transfer`
-- Entry point: `src/app/content-transfer/page.tsx`
+- Two routes, each registered as its own app URL: `/content-transfer` (normal) and `/content-transfer-with-rbac` (role-based access). See "Routes" below.
+- Entry points: `src/app/content-transfer/page.tsx` and `src/app/content-transfer-with-rbac/page.tsx`. Both render the same features.
 - The page renders the app shell (`src/components/layout/AppShell.tsx`): a sidebar lists the features from `src/features/registry.ts` (Transfer,  Package designer, Install package, Compare environments, Known issues).
+
+# Routes
+- `/content-transfer` (normal, `src/app/content-transfer/page.tsx`): lists every environment the Marketplace host gives the app. No roles, no custom auth. All SDK calls use the SDK's own auth. Because there is no token, the destination checks are skipped.
+- `/content-transfer-with-rbac` (RBAC, `src/app/content-transfer-with-rbac/page.tsx`): reads roles with `host.user` and filters environments by them ("Environment access" below). Organization admins and owners use the SDK path, as the normal route does. Everyone else uses `CustomAuthProvider` ("Custom auth for item reads" below), and the destination checks run.
+- Both routes use the same `FEATURES`, components and API route. Only the page differs.
+- `src/app/page.tsx` (root) serves the Auth0 callback for both routes. It keeps the login parameters and only follows local paths.
 
 # SDK Usage
 - For content transfer operations (createContentTransfer to deleteContentTransfer), use the `content-transfer-sdk` skill before writing the call. Keep the skill up to date when the SDK behaviour changes.
@@ -12,12 +18,30 @@ Purpose: copy content items from one SitecoreAI environment to another.
   `appContext.resourceAccess[]` lists the environments the app can access.
   Use `resourceAccess[i].context.preview` as the context ID for xmc calls.
   Use `appContext.resourceAccess[i].tenantDisplayName` as the display name for environment
-- Authentication is handled by the client. Call `client.mutate("<operation>", params)` for mutations and `client.query("<operation>", params)` for queries. Which operations are queries is listed under "SDK facts" below. Do not add your own auth.
+- Authentication is handled by the client. Call `client.mutate("<operation>", params)` for mutations and `client.query("<operation>", params)` for queries. Which operations are queries is listed under "SDK facts" below. Do not add your own auth, except the item-tree reads described under "Custom auth for item reads" below.
+
+# Custom auth for item reads
+- RBAC route only. Organization admins and owners (`hasFullAccess`) do not use custom auth at all. `content-transfer-with-rbac/page.tsx` renders the app without `CustomAuthProvider`, so there is no sign-in and no token request for them. Their item reads go through the SDK (`client.mutate`), as before custom auth. Their destination checks are skipped (the check needs the custom auth route, and Sitecore gives them full rights). This reduces calls to the server.
+- RBAC route, non-admins: `CustomAuthProvider` is used, and `useAccessToken()` returns the token getter. The normal route never has a token. Without a token (admins and owners), `GetItems` uses the SDK and the destination checks are skipped.
+Follows https://izharikov.dev/blogs/sitecore-marketplace-app-custom-authorization-setup.
+- Scope: only the item-tree reads (`GetItems`, used by Transfer and Package designer). Other SDK calls (including Compare environments' `client.mutate` reads and all content transfer operations) still use the SDK's own auth.
+- Flow: `CustomAuthProvider` (mounted in `content-transfer-with-rbac/page.tsx` once the application context is loaded) wraps the Auth0 provider. `useAccessToken()` calls `getAccessTokenSilently` with `organization_id` and `tenant_id`. `GetItems` sends the token as `Authorization: Bearer` to `/api/authoring/graphql`, which calls `experimental_createXMCClient({ getAccessToken })`.
+- Environment variables (needed by the RBAC route only; set them in the hosting environment. A local `.env` may hold them for development. `.env*` is git-ignored, so it is not committed): `NEXT_PUBLIC_AUTH0_DOMAIN`, `NEXT_PUBLIC_AUTH0_CLIENT_ID`, `NEXT_PUBLIC_AUTH0_AUDIENCE`, `NEXT_PUBLIC_AUTH0_SCOPE`, `NEXT_PUBLIC_SITECORE_APP_ID`, `NEXT_PUBLIC_APP_BASE_URL`. If one is missing, the app shows "Authentication is not configured" instead of the features.
+- Auth0 needs `NEXT_PUBLIC_APP_BASE_URL` to match a registered callback URL. Login returns to the root URL, which redirects to the original path.
+- The route accepts only two request kinds: the `GET_ITEMS` query, and a list of item paths for the Install destination check (the query text is built on the server). It cannot run arbitrary GraphQL. Tokens and context IDs are not logged. Errors from the authoring API are returned as a generic message.
+- Not verified against a live tenant yet: the build passes, but a sign-in and a tree load have to be checked in the Marketplace iframe.
+
+# Environment access (who sees which environment)
+- Roles come from `client.query("host.user")`, under the claim `https://auth.sitecorecloud.io/claims/roles`. `src/app/content-transfer-with-rbac/page.tsx` reads them and filters `environments` before any feature gets them, so every dropdown (source, target, destination) follows the same rule. The normal route (`/content-transfer`) does not filter: it lists every environment the host gives the app.
+- `[Organization]\Organization Admin` or `[Organization]\Organization Owner`: all environments in `application.context.resourceAccess`.
+- Anyone else: only environments whose `tenantId` has the role `<tenantId>\[XMCloud]\User` or `<tenantId>\[XMCloud]\Advance User`. Checks live in `src/lib/access.ts`.
+- If the roles cannot be loaded, the app shows an error and no environments (it fails closed). If the user has no matching environment, a message is shown instead of the app.
+- Role strings are compared after every run of backslashes is reduced to one. The platform sends two backslashes between the parts (for example `<tenantId>\\[XMCloud]\\User`), and single-backslash roles also match. If the role names change, update `src/lib/access.ts`.
 
 # Feature: content transfer
 Full flow and rules: @docs/content-transfer-flow.md
 
-Three modes in /content-transfer:
+Three modes (on both routes):
 1. Transfer: pick source + destination (must differ; label environments by name, never by context ID)
     -> browse the source tree (see Source tree browsing below) -> multi-select items
     -> set Scope and MergeStrategy per item -> run transfer -> show per-step progress.
@@ -26,12 +50,13 @@ Three modes in /content-transfer:
 
 ## Source tree browsing
 Items are fetched with the `GetItems` function in `src/lib/getItems.ts`. It calls
-`client.mutate("xmc.authoring.graphql", ...)` with the `GET_ITEMS` query and variables
+`POST /api/authoring/graphql` with the user's access token (see "Custom auth for item reads"), which runs the `GET_ITEMS` query and variables
 `path` and optional `after`, and returns the item at `path` plus its children.
 
 - `GetItems` takes the context ID of the selected SOURCE environment as a parameter.
   Never hard-code `resourceAccess[0]`.
 - Keep the existing error handling: throw on `error`, on GraphQL `errors`, and when `data` is missing.
+- Permissions are enforced by Sitecore, not by the app. `GET_ITEMS` does not request `access`, and the API returns only items the user may read. The app does not filter the tree or check read rights for Transfer or Package designer.
 
 Tree behavior:
 - Root path: `/sitecore`. When the source is selected, load the root item
@@ -138,9 +163,13 @@ Other limits:
 - `src/features/registry.ts`: the feature list (`FEATURES`: id, label, Blok icon path, component). Add a feature by writing its component and adding one entry. Sidebar order follows the array. Features receive `{ client, environments }`.
 - `src/components/layout/AppShell.tsx`: app layout. Left sidebar with the brand (`public/logo.png`, shown with `next/image`, vertically centred with the title) and a "Navigate" list. Top bar with a sidebar toggle, a breadcrumb and the theme switch. Content has 10% side margin on md+ screens (16px on phones). Only the active feature is mounted, so switching starts it fresh. Navigation locks while a feature reports a run (`FeatureBusyContext` and `useReportBusy` in `src/features/busy.ts`). Each feature has its own Clear button, disabled while running.
 - `src/components/theme/ThemeToggle.tsx`: light/dark toggle. Reads the `dark` class on `<html>` through `useSyncExternalStore`. The choice is stored in localStorage under the key in `src/lib/theme.ts`. An inline script in `src/app/layout.tsx` applies it before first paint.
-- `src/components/content-transfer/`: `TransferMode` (Transfer), `DownloadPackageMode` (Package designer), `InstallPackageMode` (Install package), `EnvironmentSelect`, `SourceTree`, `TreeNode`, `SelectionPanel`, `TransferProgressView`.
+- `src/components/content-transfer/`: `TransferMode` (Transfer), `DownloadPackageMode` (Package designer), `InstallPackageMode` (Install package), `EnvironmentSelect`, `SourceTree`, `TreeNode`, `SelectionPanel`, `TransferProgressView`, `PermissionCheckOverlay` (full-screen light overlay with a spinner, shown while destination rights are checked; used by Transfer and Install package).
 - `src/components/known-issues/KnownIssuesMode.tsx`: accordion over `KNOWN_ISSUES` in `src/models/knownIssues.ts`. Add new issues there.
-- `src/lib/getItems.ts`: `GetItems(client, sourceContextId, path, after?)`, wraps `xmc.authoring.graphql`.
+- `src/lib/getItems.ts`: `GetItems(getAccessToken, sourceContextId, path, after?)`. Sends `GET_ITEMS` to our route with a Bearer token.
+- `src/app/api/authoring/graphql/route.ts`: server route. Reads the Bearer token, creates `experimental_createXMCClient`, runs `xmc.authoring.graphql`. Accepts only `GET_ITEMS` and the access check by paths (`buildAccessCheckQuery` in `src/utils/graphqlQueries.ts`).
+- `src/app/content-transfer/page.tsx`: normal route (no roles, no custom auth). `src/app/content-transfer-with-rbac/page.tsx`: RBAC route (roles, environment filter, custom auth for non-admins).
+- `src/app/page.tsx`: root page. Sends the user back to `?redirect=<path>` after Auth0 login. Local paths only.
+- `src/components/auth/CustomAuthProvider.tsx`: Auth0 provider and token getter. `src/utils/hooks/useAccessToken.ts`: context and `useAccessToken()`.
 - `src/lib/contentTransfer.ts`: `runTransfer(...)` (steps 1 to 8), `runDownloadPackage(...)` (steps 1 to 3, write the zip, cleanup) and `runInstallPackage(...)` (steps 4 to 7 with a new transferId). Shared helpers: `runSteps` (source runs, attributes failures to a step, always cleans up) and `importOnDestination` (steps 5 to 7, used by Transfer and Install).
 - `src/lib/contentPackage.ts`: `PackageZipWriter` (fflate, writes entries to a `PackageSink`), `createMemorySink` (Download), `readPackage` (validates an uploaded package for Install). Package format and delivery are in `docs/content-transfer-flow.md`.
 - `src/lib/icon.tsx`: `Icon` (MDI path renderer). `src/lib/theme.ts`: theme storage key and the init script.
@@ -167,6 +196,8 @@ Other limits:
 - `runTransfer`: `transferId` is `crypto.randomUUID()`, generated once per run. Polling is every 5 s with a 10 min timeout. Chunks are copied sequentially. No retries. Cleanup (step 8) always runs, and a cleanup error is a warning that does not hide the original failure.
 - Install package: `readPackage` validates the zip before anything is sent. All problems are listed together. The user confirms the destination and the install in a dialog.
 - The progress panel scrolls into view when a run starts.
+- Destination check for Transfer and Install package (`checkDestinationPermissions`, `src/lib/destinationPermissions.ts`; skipped for organization admins and owners, who have no token): before anything is read from the source or written to the destination, one request reads the access rights of every item path in the package's `dataTrees` and of each one's parent. For each item, the target is the item at the same path if it exists, otherwise its parent. The target needs `access.canWrite` and `access.canCreate`. If any target fails, or a parent is missing, the install does not start, and the outcome lists the paths and reasons. A failed request throws, so the run does not start. Package designer does not run this check, and no source read check is made for any feature.
+- Compare environments does not use `access`. Its query (`GET_ITEMS_WITH_FIELDS`) has no access block, and it does not check read permission.
 
 # SDK facts (confirmed from installed types or a real run)
 - `client.query` (QueryMap): `getContentTransferStatus`, `getChunk`, `consumeFile`, `getBlobState`.
@@ -201,7 +232,7 @@ Other limits:
 - Prettier settings: `.prettierrc.json` (2 spaces, double quotes, semicolons, trailing commas, 120 characters). Ignored by `.prettierignore` (lock file, `.claude/`, CLAUDE.md, claude.md).
 - On Windows (Git Bash), multi-line heredocs with quotes failed. Write multi-line files with the Write tool.
 - Editor "Cannot find module ... './globals.css'" squiggle: restart the TS server. `src/types/css.d.ts` declares `*.css`.
-
+s
 # Code style
 - 2-space indentation, named exports for React components.
 - GraphQL queries live in `src/utils/graphqlQueries.ts`.

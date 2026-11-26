@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { ClientSDK } from "@sitecore-marketplace-sdk/client";
 import { GetItems } from "@/src/lib/getItems";
+import { useAccessToken } from "@/src/utils/hooks/useAccessToken";
 import type { Item, ItemNode, PageInfo } from "@/src/models/getItems";
 
 export const ROOT_PATH = "/sitecore";
@@ -155,6 +156,8 @@ export function useSourceTree(client: ClientSDK | null, sourceContextId: string 
   const [state, dispatch] = useReducer(reducer, { epoch: 0, nodes: {} });
   const epochRef = useRef(0);
   const requestCounter = useRef(0);
+  // Item requests go through our route with the user's token, so the token getter comes from the auth provider.
+  const getAccessToken = useAccessToken();
 
   const loadNode = useCallback(
     async (path: string, after?: string) => {
@@ -163,7 +166,7 @@ export function useSourceTree(client: ClientSDK | null, sourceContextId: string 
       const requestId = ++requestCounter.current;
       dispatch({ type: "loadStart", epoch, path, requestId });
       try {
-        const result = await GetItems(client, sourceContextId, path, after);
+        const result = await GetItems(client, getAccessToken, sourceContextId, path, after);
         if (!result?.item) throw new Error("No item exists at this path in the source environment.");
         dispatch({ type: "loadSuccess", epoch, path, requestId, result, append: Boolean(after) });
       } catch (e) {
@@ -177,7 +180,7 @@ export function useSourceTree(client: ClientSDK | null, sourceContextId: string 
         });
       }
     },
-    [client, sourceContextId],
+    [client, sourceContextId, getAccessToken],
   );
 
   // Source changed (or client became ready): drop the old tree, then load the root and its first page.

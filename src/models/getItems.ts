@@ -7,6 +7,13 @@ export interface Item {
   };
 }
 
+// What the signed-in user may do with an item. Read by the batched access check (Install package) only.
+export interface ItemAccess {
+  canRead: boolean;
+  canCreate: boolean;
+  canWrite: boolean;
+}
+
 export interface ItemNode {
   itemId: string;
   hasChildren: boolean;

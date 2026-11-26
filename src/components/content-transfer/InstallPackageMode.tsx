@@ -19,8 +19,11 @@ import {
 } from "@/src/components/content-transfer/TransferProgressView";
 import type { FeatureProps } from "@/src/features/registry";
 import { PackageValidationError, readPackage, type ReadPackageResult } from "@/src/lib/contentPackage";
+import { checkDestinationPermissions } from "@/src/lib/destinationPermissions";
 import { runInstallPackage } from "@/src/lib/contentTransfer";
+import { useAccessToken } from "@/src/utils/hooks/useAccessToken";
 import { useReportBusy } from "@/src/features/busy";
+import { PermissionCheckOverlay } from "@/src/components/content-transfer/PermissionCheckOverlay";
 import { MERGE_STRATEGY_OPTIONS, SCOPE_OPTIONS, type TransferProgress } from "@/src/models/contentTransfer";
 
 interface LoadedPackage extends ReadPackageResult {
@@ -37,8 +40,10 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<TransferProgress | null>(null);
   const [outcome, setOutcome] = useState<TransferOutcome | null>(null);
+  const [checkingPermissions, setCheckingPermissions] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const getAccessToken = useAccessToken();
 
   useEffect(() => {
     if (running) progressRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -103,6 +108,22 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
     setOutcome(null);
     setProgress(initialProgress());
     try {
+      // Check the destination before anything is sent. The package's data trees are the items it will write.
+      // Organization admins and owners have no token and skip this check: Sitecore already gives them full rights.
+      setCheckingPermissions(true);
+      const problems = getAccessToken
+        ? await checkDestinationPermissions(getAccessToken, destination.contextId, loaded.manifest.dataTrees)
+        : [];
+      setCheckingPermissions(false);
+      if (problems.length > 0) {
+        setOutcome({
+          kind: "failure",
+          message: `Transfer not started. You do not have the rights needed in ${destination.name}. Fix the issues below, or remove those items from the package.`,
+          details: problems.map((problem) => `${problem.path}: ${problem.reason.trim()}`),
+        });
+        return;
+      }
+
       const result = await runInstallPackage({
         client,
         destinationContextId: destination.contextId,
@@ -117,6 +138,7 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
         message: error instanceof Error ? error.message : "Install failed.",
       });
     } finally {
+      setCheckingPermissions(false);
       setRunning(false);
     }
   };
@@ -212,7 +234,9 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
         </section>
       )}
 
-      {progress && (
+      {checkingPermissions && <PermissionCheckOverlay destinationName={destination?.name} />}
+
+      {progress && !checkingPermissions && (
         <div ref={progressRef} className="scroll-mt-6">
           <TransferProgressView progress={progress} outcome={outcome} steps={INSTALL_STEP_IDS} />
         </div>

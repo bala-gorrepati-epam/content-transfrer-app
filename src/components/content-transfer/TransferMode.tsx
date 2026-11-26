@@ -19,14 +19,18 @@ import {
   initialProgress,
   type TransferOutcome,
 } from "@/src/components/content-transfer/TransferProgressView";
+import { checkDestinationPermissions } from "@/src/lib/destinationPermissions";
 import { runTransfer } from "@/src/lib/contentTransfer";
 import {
   MERGE_STRATEGY_OPTIONS,
   SCOPE_OPTIONS,
+  type DataTree,
   type EnvironmentOption,
   type TransferProgress,
 } from "@/src/models/contentTransfer";
+import { PermissionCheckOverlay } from "@/src/components/content-transfer/PermissionCheckOverlay";
 import { useSourceBrowser } from "@/src/utils/hooks/useSourceBrowser";
+import { useAccessToken } from "@/src/utils/hooks/useAccessToken";
 import { useReportBusy } from "@/src/features/busy";
 
 interface TransferModeProps {
@@ -39,9 +43,12 @@ export function TransferMode({ client, environments }: TransferModeProps) {
   const [destinationIndex, setDestinationIndex] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [running, setRunning] = useState(false);
+  // True only while the destination rights are being checked, before the transfer starts.
+  const [checkingPermissions, setCheckingPermissions] = useState(false);
   const [progress, setProgress] = useState<TransferProgress | null>(null);
   const [outcome, setOutcome] = useState<TransferOutcome | null>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const getAccessToken = useAccessToken();
 
   // Bring the progress panel into view when a run starts. Runs in an effect so the panel
   // is already rendered (progress is set in the same update as running).
@@ -81,17 +88,35 @@ export function TransferMode({ client, environments }: TransferModeProps) {
     setConfirmOpen(false);
     setRunning(true);
     setOutcome(null);
-    setProgress(initialProgress());
+    const dataTrees: DataTree[] = selection.items.map((item) => ({
+      itemPath: item.path,
+      scope: item.scope,
+      mergeStrategy: item.mergeStrategy,
+    }));
     try {
+      // Check the destination before anything is read from the source or written to it.
+      setCheckingPermissions(true);
+      // Organization admins and owners have no token and skip this check: Sitecore already gives them full rights.
+      const problems = getAccessToken
+        ? await checkDestinationPermissions(getAccessToken, destination.contextId, dataTrees)
+        : [];
+      setCheckingPermissions(false);
+      if (problems.length > 0) {
+        setProgress(initialProgress());
+        setOutcome({
+          kind: "failure",
+          message: `Transfer not started. You do not have the rights needed in ${destination.name}. Fix the issues below, or remove those items from the transfer.`,
+          details: problems.map((problem) => `${problem.path}: ${problem.reason.trim()}`),
+        });
+        return;
+      }
+
+      setProgress(initialProgress());
       const result = await runTransfer({
         client,
         sourceContextId: source.contextId,
         destinationContextId: destination.contextId,
-        dataTrees: selection.items.map((item) => ({
-          itemPath: item.path,
-          scope: item.scope,
-          mergeStrategy: item.mergeStrategy,
-        })),
+        dataTrees,
         onProgress: (step, state) => setProgress((prev) => (prev ? { ...prev, [step]: state } : prev)),
       });
       setOutcome({ kind: "success", message: `Transferred ${result.fileNames.length} file(s).` });
@@ -101,6 +126,7 @@ export function TransferMode({ client, environments }: TransferModeProps) {
         message: error instanceof Error ? error.message : "Transfer failed.",
       });
     } finally {
+      setCheckingPermissions(false);
       setRunning(false);
     }
   };
@@ -164,7 +190,9 @@ export function TransferMode({ client, environments }: TransferModeProps) {
         </section>
       </div>
 
-      {progress && (
+      {checkingPermissions && <PermissionCheckOverlay destinationName={destination?.name} />}
+
+      {progress && !checkingPermissions && (
         <div ref={progressRef} className="scroll-mt-6">
           <TransferProgressView progress={progress} outcome={outcome} />
         </div>
