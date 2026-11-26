@@ -19,7 +19,9 @@ import {
 } from "@/src/components/content-transfer/TransferProgressView";
 import type { FeatureProps } from "@/src/features/registry";
 import { PackageValidationError, readPackage, type ReadPackageResult } from "@/src/lib/contentPackage";
+import { checkDestinationPermissions } from "@/src/lib/destinationPermissions";
 import { runInstallPackage } from "@/src/lib/contentTransfer";
+import { useAccessToken } from "@/src/utils/hooks/useAccessToken";
 import { useReportBusy } from "@/src/features/busy";
 import { MERGE_STRATEGY_OPTIONS, SCOPE_OPTIONS, type TransferProgress } from "@/src/models/contentTransfer";
 
@@ -39,6 +41,7 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
   const [outcome, setOutcome] = useState<TransferOutcome | null>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const getAccessToken = useAccessToken();
 
   useEffect(() => {
     if (running) progressRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -103,6 +106,22 @@ export function InstallPackageMode({ client, environments }: FeatureProps) {
     setOutcome(null);
     setProgress(initialProgress());
     try {
+      // Check the destination before anything is sent. The package's data trees are the items it will write.
+      const problems = await checkDestinationPermissions(
+        getAccessToken,
+        destination.contextId,
+        loaded.manifest.dataTrees,
+      );
+      if (problems.length > 0) {
+        setOutcome({
+          kind: "failure",
+          message: `Install not started. You do not have the rights needed in ${destination.name} for: ${problems
+            .map((problem) => `${problem.path} (${problem.reason})`)
+            .join("; ")}.`,
+        });
+        return;
+      }
+
       const result = await runInstallPackage({
         client,
         destinationContextId: destination.contextId,

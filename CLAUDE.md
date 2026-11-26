@@ -20,7 +20,7 @@ Follows https://izharikov.dev/blogs/sitecore-marketplace-app-custom-authorizatio
 - Flow: `CustomAuthProvider` (mounted in `page.tsx` once the application context is loaded) wraps the Auth0 provider. `useAccessToken()` calls `getAccessTokenSilently` with `organization_id` and `tenant_id`. `GetItems` sends the token as `Authorization: Bearer` to `/api/authoring/graphql`, which calls `experimental_createXMCClient({ getAccessToken })`.
 - Environment variables (set in the hosting environment; the repo has no `.env` values to commit): `NEXT_PUBLIC_AUTH0_DOMAIN`, `NEXT_PUBLIC_AUTH0_CLIENT_ID`, `NEXT_PUBLIC_AUTH0_AUDIENCE`, `NEXT_PUBLIC_AUTH0_SCOPE`, `NEXT_PUBLIC_SITECORE_APP_ID`, `NEXT_PUBLIC_APP_BASE_URL`. If one is missing, the app shows "Authentication is not configured" instead of the features.
 - Auth0 needs `NEXT_PUBLIC_APP_BASE_URL` to match a registered callback URL. Login returns to the root URL, which redirects to the original path.
-- The route accepts only the `GET_ITEMS` query text, so it cannot run arbitrary GraphQL. Tokens and context IDs are not logged. Errors from the authoring API are returned as a generic message.
+- The route accepts only two request kinds: the `GET_ITEMS` query, and a list of item paths for the Install destination check (the query text is built on the server). It cannot run arbitrary GraphQL. Tokens and context IDs are not logged. Errors from the authoring API are returned as a generic message.
 - Not verified against a live tenant yet: the build passes, but a sign-in and a tree load have to be checked in the Marketplace iframe.
 
 # Environment access (who sees which environment)
@@ -48,6 +48,7 @@ Items are fetched with the `GetItems` function in `src/lib/getItems.ts`. It call
 - `GetItems` takes the context ID of the selected SOURCE environment as a parameter.
   Never hard-code `resourceAccess[0]`.
 - Keep the existing error handling: throw on `error`, on GraphQL `errors`, and when `data` is missing.
+- Permissions are enforced by Sitecore, not by the app. `GET_ITEMS` does not request `access`, and the API returns only items the user may read. The app does not filter the tree or check read rights for Transfer or Package designer.
 
 Tree behavior:
 - Root path: `/sitecore`. When the source is selected, load the root item
@@ -157,7 +158,7 @@ Other limits:
 - `src/components/content-transfer/`: `TransferMode` (Transfer), `DownloadPackageMode` (Package designer), `InstallPackageMode` (Install package), `EnvironmentSelect`, `SourceTree`, `TreeNode`, `SelectionPanel`, `TransferProgressView`.
 - `src/components/known-issues/KnownIssuesMode.tsx`: accordion over `KNOWN_ISSUES` in `src/models/knownIssues.ts`. Add new issues there.
 - `src/lib/getItems.ts`: `GetItems(getAccessToken, sourceContextId, path, after?)`. Sends `GET_ITEMS` to our route with a Bearer token.
-- `src/app/api/authoring/graphql/route.ts`: server route. Reads the Bearer token, creates `experimental_createXMCClient`, runs `xmc.authoring.graphql`. Accepts only `GET_ITEMS`.
+- `src/app/api/authoring/graphql/route.ts`: server route. Reads the Bearer token, creates `experimental_createXMCClient`, runs `xmc.authoring.graphql`. Accepts only `GET_ITEMS` and the access check by paths (`buildAccessCheckQuery` in `src/utils/graphqlQueries.ts`).
 - `src/app/page.tsx`: root page. Sends the user back to `?redirect=<path>` after Auth0 login. Local paths only.
 - `src/components/auth/CustomAuthProvider.tsx`: Auth0 provider and token getter. `src/utils/hooks/useAccessToken.ts`: context and `useAccessToken()`.
 - `src/lib/contentTransfer.ts`: `runTransfer(...)` (steps 1 to 8), `runDownloadPackage(...)` (steps 1 to 3, write the zip, cleanup) and `runInstallPackage(...)` (steps 4 to 7 with a new transferId). Shared helpers: `runSteps` (source runs, attributes failures to a step, always cleans up) and `importOnDestination` (steps 5 to 7, used by Transfer and Install).
@@ -186,6 +187,8 @@ Other limits:
 - `runTransfer`: `transferId` is `crypto.randomUUID()`, generated once per run. Polling is every 5 s with a 10 min timeout. Chunks are copied sequentially. No retries. Cleanup (step 8) always runs, and a cleanup error is a warning that does not hide the original failure.
 - Install package: `readPackage` validates the zip before anything is sent. All problems are listed together. The user confirms the destination and the install in a dialog.
 - The progress panel scrolls into view when a run starts.
+- Destination check for Transfer and Install package (`checkDestinationPermissions`, `src/lib/destinationPermissions.ts`): before anything is read from the source or written to the destination, one request reads the access rights of every item path in the package's `dataTrees` and of each one's parent. For each item, the target is the item at the same path if it exists, otherwise its parent. The target needs `access.canWrite` and `access.canCreate`. If any target fails, or a parent is missing, the install does not start, and the outcome lists the paths and reasons. A failed request throws, so the run does not start. Package designer does not run this check, and no source read check is made for any feature.
+- Compare environments does not use `access`. Its query (`GET_ITEMS_WITH_FIELDS`) has no access block, and it does not check read permission.
 
 # SDK facts (confirmed from installed types or a real run)
 - `client.query` (QueryMap): `getContentTransferStatus`, `getChunk`, `consumeFile`, `getBlobState`.
@@ -220,7 +223,7 @@ Other limits:
 - Prettier settings: `.prettierrc.json` (2 spaces, double quotes, semicolons, trailing commas, 120 characters). Ignored by `.prettierignore` (lock file, `.claude/`, CLAUDE.md, claude.md).
 - On Windows (Git Bash), multi-line heredocs with quotes failed. Write multi-line files with the Write tool.
 - Editor "Cannot find module ... './globals.css'" squiggle: restart the TS server. `src/types/css.d.ts` declares `*.css`.
-
+s
 # Code style
 - 2-space indentation, named exports for React components.
 - GraphQL queries live in `src/utils/graphqlQueries.ts`.
