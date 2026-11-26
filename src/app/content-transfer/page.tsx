@@ -18,7 +18,7 @@ function ContentTransfer() {
     }
     if (!isInitialized || !client) return;
 
-    // Logs nothing from the responses: it contain context IDs.
+    // Logs nothing from the responses: it contains context IDs.
     client
       .query("application.context")
       .then((res) => setAppContext(res.data))
